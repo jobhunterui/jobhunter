@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <defs>
+      <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#3498db" />
+        <stop offset="100%" stop-color="#2980b9" />
+      </linearGradient>
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#00000033" />
+      </filter>
+    </defs>
+    
+    <!-- Background -->
+    <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#bg-gradient)" filter="url(#shadow)" />
+    
+    <!-- Briefcase -->
+    <path d="M84 36H44c-2.2 0-4 1.8-4 4v12h48V40c0-2.2-1.8-4-4-4z" fill="#ffffff" opacity="0.9" />
+    <path d="M88 52H40v36c0 2.2 1.8 4 4 4h40c2.2 0 4-1.8 4-4V52z" fill="#ffffff" opacity="0.9" />
+    
+    <!-- Magnifying Glass -->
+    <circle cx="86" cy="80" r="20" fill="none" stroke="#ffffff" stroke-width="8" opacity="0.9" />
+    <line x1="100" y1="94" x2="112" y2="106" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.9" />
+    
+    <!-- Document -->
+    <rect x="24" y="44" width="32" height="40" rx="2" fill="#ffffff" opacity="0.9" />
+    <line x1="30" y1="54" x2="50" y2="54" stroke="#3498db" stroke-width="2" stroke-linecap="round" />
+    <line x1="30" y1="62" x2="50" y2="62" stroke="#3498db" stroke-width="2" stroke-linecap="round" />
+    <line x1="30" y1="70" x2="50" y2="70" stroke="#3498db" stroke-width="2" stroke-linecap="round" />
+    <line x1="30" y1="78" x2="43" y2="78" stroke="#3498db" stroke-width="2" stroke-linecap="round" />
+</svg>

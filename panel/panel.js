@@ -499,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const job = savedJobs[jobIndex];
         const cv = profileData.cv || '';
-        const careerGoals = profileData.careerGoals || '';
         
         if (!cv.trim()) {
           alert('Please add your CV in the Profile tab first.');
@@ -509,7 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Create prompt for Claude
-        const prompt = createClaudePrompt(job, cv, careerGoals);
+        const prompt = createClaudePrompt(job, cv);
         
         // Copy prompt to clipboard
         navigator.clipboard.writeText(prompt).then(() => {
@@ -528,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  function createClaudePrompt(job, cv, careerGoals) {
+  function createClaudePrompt(job, cv) {
     return `I need help creating:
   1. A tailored CV in JSON format to use with my template 
   2. A cover letter I can use directly
@@ -541,9 +540,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   MY CURRENT CV:
   ${cv}
-  
-  CAREER GOALS:
-  ${careerGoals}
   
   First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging.
   
@@ -597,30 +593,27 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Profile Tab Functions
+
+  // Load profile data
   function loadProfileData() {
     browser.storage.local.get('profileData').then(result => {
       if (result.profileData) {
         document.getElementById('cv').value = result.profileData.cv || '';
-        document.getElementById('career-goals').value = result.profileData.careerGoals || '';
-        
-        if (result.profileData.templateStyle) {
-          document.getElementById('template-style').value = result.profileData.templateStyle;
-        }
       }
     });
   }
-  
+
+  // Save profile data
   function saveProfileData() {
     const profileData = {
-      cv: document.getElementById('cv').value,
-      careerGoals: document.getElementById('career-goals').value,
-      templateStyle: document.getElementById('template-style').value
+      cv: document.getElementById('cv').value
     };
     
     browser.storage.local.set({ profileData }).then(() => {
       alert('Profile saved successfully!');
     });
   }
+
   // Previews only CV
   function previewCVAndCoverLetter() {
     console.log("Preview button clicked!");

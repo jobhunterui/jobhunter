@@ -67,7 +67,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   function extractCompanyName() {
-    // Try to find company name using common patterns
+    // First try to find company name using common selectors
     const companySelectors = [
       '.company-name',
       '.job-company',
@@ -78,57 +78,136 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       '.top-card-layout__company-name',
       '.jobs-unified-top-card__company-name',
       '[data-test="employer-name"]',
-      '.employer-name'
+      '.employer-name',
+      '.company',
+      '[itemprop="hiringOrganization"]',
+      '.job-details-jobs-unified-top-card__primary-description',
+      '.job-company-name',
+      '.employer-info'
     ];
     
     for (const selector of companySelectors) {
       const element = document.querySelector(selector);
       if (element && element.textContent.trim()) {
-        return element.textContent.trim();
+        return cleanCompanyName(element.textContent.trim());
       }
     }
     
-    // Try to extract from URL
+    // Look for company in page title
+    const titleMatch = document.title.match(/(.+?)(\s+at\s+|\s+\-\s+|\s+\|\s+)(.+?)(\s+\-\s+|\s+\|\s+|$)/i);
+    if (titleMatch) {
+      if (titleMatch[3] && !titleMatch[3].toLowerCase().includes('job') && !titleMatch[3].toLowerCase().includes('career')) {
+        return cleanCompanyName(titleMatch[3]);
+      }
+    }
+  
+    // Look for company in meta tags
+    const metaTags = document.querySelectorAll('meta[property="og:site_name"], meta[name="author"], meta[name="publisher"]');
+    for (const meta of metaTags) {
+      if (meta.content && meta.content.trim()) {
+        return cleanCompanyName(meta.content.trim());
+      }
+    }
+    
+    // Look for logos with alt text containing company name
+    const logos = document.querySelectorAll('img[alt*="logo"], img[class*="logo"], img[src*="logo"]');
+    for (const logo of logos) {
+      if (logo.alt && logo.alt.trim() && logo.alt.toLowerCase().includes('logo')) {
+        const altText = logo.alt.trim();
+        // Extract company name from alt text (e.g., "Company Name Logo")
+        const logoMatch = altText.match(/(.+?)\s+logo/i);
+        if (logoMatch && logoMatch[1]) {
+          return cleanCompanyName(logoMatch[1]);
+        }
+      }
+    }
+  
+    // Try to extract from URL for common ATS platforms
     try {
       const url = new URL(window.location.href);
       const hostname = url.hostname;
+      const pathname = url.pathname;
       
-      // Remove common TLDs
-      const companyFromURL = hostname.replace(/\.(com|org|net|io|co|jobs)$/, '')
-                                     .split('.')
-                                     .pop();
-      
-      // Common ATS domains to check
-      const atsPatterns = [
-        { pattern: /lever\.co/i, extract: (url) => url.pathname.split('/')[1] },
-        { pattern: /greenhouse\.io/i, extract: (url) => url.pathname.split('/')[2] },
-        { pattern: /workable\.com/i, extract: (url) => url.pathname.split('/')[1] },
-        { pattern: /ashbyhq\.com/i, extract: (url) => url.pathname.split('/')[2] }
-      ];
-      
-      for (const ats of atsPatterns) {
-        if (ats.pattern.test(hostname)) {
-          const extracted = ats.extract(url);
-          if (extracted) {
-            // Convert dashes to spaces and capitalize
-            return extracted
-              .replace(/-/g, ' ')
-              .replace(/\b\w/g, l => l.toUpperCase());
-          }
+      // Lever
+      if (hostname.includes('lever.co')) {
+        // Format is usually: jobs.lever.co/companyname
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
         }
       }
       
-      // If no ATS pattern matched but we have something from the URL
+      // Greenhouse
+      if (hostname.includes('greenhouse.io')) {
+        // Format is usually: boards.greenhouse.io/companyname
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
+        }
+      }
+      
+      // Workable
+      if (hostname.includes('workable.com')) {
+        // Format is usually: apply.workable.com/companyname
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
+        }
+      }
+      
+      // Ashby
+      if (hostname.includes('ashbyhq.com')) {
+        // Format is usually: jobs.ashbyhq.com/companyname
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
+        }
+      }
+      
+      // SmartRecruiters
+      if (hostname.includes('smartrecruiters.com')) {
+        // Format is usually: jobs.smartrecruiters.com/CompanyName
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
+        }
+      }
+      
+      // Jobvite
+      if (hostname.includes('jobvite.com')) {
+        // Format is usually: jobs.jobvite.com/companyname
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0) {
+          return cleanCompanyName(pathParts[0]);
+        }
+      }
+      
+      // If no ATS pattern matched, try generic hostname extraction
+      // Remove common domains and get the remaining part
+      const companyFromURL = hostname
+        .replace(/\.(com|org|net|io|co|jobs)$/, '')
+        .split('.')
+        .filter(part => !['www', 'jobs', 'careers', 'job', 'work', 'apply', 'hire', 'boards'].includes(part))
+        .pop();
+      
       if (companyFromURL && companyFromURL.length > 1) {
-        return companyFromURL
-          .replace(/-/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase());
+        return cleanCompanyName(companyFromURL);
       }
     } catch (e) {
       console.error("Error extracting company from URL:", e);
     }
     
     return "Company";
+  }
+  
+  // Helper function to clean up and format company names
+  function cleanCompanyName(name) {
+    return name
+      .replace(/(-jobs|-careers|-job|-career|-hiring|-open-positions)$/i, '')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase())
+      .replace(/\s+/g, ' ')
+      .trim();
   }
   
   function extractLocation() {

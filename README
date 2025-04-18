@@ -1,0 +1,109 @@
+# Job Hunter Extension
+
+A Firefox extension that simplifies the job search process, helping you find, save, and apply to jobs more efficiently with AI assistance.
+
+## Features
+
+### Find Jobs
+![Find Jobs Screenshot](./screenshots/Find%20Jobs%20Screenshot.png)
+
+- Search for job listings across multiple platforms:
+  - LinkedIn Jobs search
+  - LinkedIn Feed posts (finds jobs shared in regular posts)
+  - Google search with ATS site filters (Lever, Greenhouse, Workable, etc.)
+  - AI-powered job search using Perplexity
+
+- Customize search parameters:
+  - Job role/title
+  - Location (including remote options)
+  - Experience level
+  - LinkedIn Feed search phrases (for finding informal job postings)
+
+### Save Job Postings
+![Saved Job Postings Screenshot](./screenshots/Saved%20Job%20Postings%20Screenshot.png)
+
+- Save job postings while browsing with a right-click context menu
+- View a list of all saved jobs
+- See job details including:
+  - Job title
+  - Company name
+  - Location
+  - URL
+- View full job descriptions
+- Refresh saved jobs list
+- Remove jobs you're no longer interested in
+
+### Apply with AI
+- Generate customized CVs and cover letters using Claude AI
+- Save your base CV in your profile
+- Generate tailored applications based on job descriptions
+- Preview your CV in a clean, professional template
+![Template CV Generated Screenshot](./screenshots/Template%20CV%20Generated%20Screenshot.png)
+
+## How to Use
+
+### Setting Up Your Profile
+![Empty Profile Screenshot](./screenshots/Empty%20Profile%20Screenshot.png)
+![Filled Profile Screenshot](./screenshots/Filled%20Profile%20Screenshot.png)
+
+1. Go to the Profile tab
+2. Paste your CV/resume text
+3. Click "Save Profile"
+
+### Finding Jobs
+
+1. Go to the Find Jobs tab
+2. Enter your desired role, location, and experience level
+3. Choose your preferred search method:
+   - **Find on LinkedIn**: Search formal LinkedIn job listings
+   - **Find on LinkedIn Feed**: Search informal job postings in the LinkedIn feed
+   - **Find on Google**: Search across major ATS sites
+   - **Find with AI**: Use Perplexity AI to find relevant job postings
+
+### Saving Jobs
+
+1. When browsing a job posting you're interested in, right-click the page
+2. Select "Save Job to Job Hunter"
+3. The job will be automatically saved to your "Apply" tab
+
+### Applying to Jobs
+
+1. Go to the Apply tab
+2. Browse your saved jobs
+3. Click on a job to select it
+4. Click "Generate Application"
+5. The extension will:
+   - Open Claude AI in a new tab
+   - Copy a prompt to your clipboard
+   - Paste the prompt into Claude
+6. Claude will generate:
+   - A customized cover letter you can use directly
+   - JSON data for your CV
+7. Copy the JSON from Claude
+8. Paste it into the "Tailored CV JSON" field in your Profile tab
+9. Click "Preview CV" to see your formatted CV
+10. Print the CV or save as PDF
+
+## Installation
+
+1. Download the extension files
+2. Open Firefox and navigate to `about:debugging`
+3. Click "This Firefox"
+4. Click "Load Temporary Add-on..."
+5. Select the `manifest.json` file from the extension folder
+
+## Benefits
+
+- **Time-saving**: Find jobs across multiple platforms in one place
+- **Organization**: Keep track of jobs you're interested in
+- **Efficiency**: Generate tailored applications with AI assistance
+- **Professional presentation**: Get well-formatted CVs ready for submission
+
+## Notes
+
+- The extension requires access to Claude AI for generating customized applications
+- For best results, provide a comprehensive CV in your profile
+
+---
+
+This extension makes it easier to find jobs, save them to apply to later, and when you're done finding and picking the ones you want, you can start applying using Claude AI to easily generate your CV and cover letters.

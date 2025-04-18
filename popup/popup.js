@@ -73,27 +73,23 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function searchOnGoogle() {
-    const role = encodeURIComponent(document.getElementById('role').value);
-    const location = encodeURIComponent(document.getElementById('location').value);
+    const role = document.getElementById('role').value.trim();
+    const location = document.getElementById('location').value.trim();
     
-    // List of common ATS sites
+    // List of specific ATS sites as requested
     const atsSites = [
       'jobs.lever.co',
       'boards.greenhouse.io',
       'apply.workable.com',
       'ashbyhq.com',
-      'jobs.ashbyhq.com',
-      'wellfound.com',
-      'jobs.smartrecruiters.com',
-      'jobvite.com',
-      'hire.jobvite.com'
+      'jobs.smartrecruiters.com'
     ];
     
-    // Construct site search query
+    // Construct site search query exactly as specified
     const siteQuery = atsSites.map(site => `site:${site}`).join(' OR ');
     
-    // Construct full query with role and location
-    const query = `(${siteQuery}) ${role} ${location}`;
+    // Put the role in double quotes
+    const query = `(${siteQuery}) "${role}" ${location}`;
     
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     
@@ -101,22 +97,52 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function searchWithAI() {
-    const role = encodeURIComponent(document.getElementById('role').value);
-    const location = encodeURIComponent(document.getElementById('location').value);
+    const role = document.getElementById('role').value.trim();
+    const location = document.getElementById('location').value.trim();
     const experience = document.getElementById('experience').value;
     
-    // Create prompt for Perplexity
-    let prompt = `Find job openings for ${role} positions`;
+    // Create a more sophisticated prompt for Perplexity as requested
+    let prompt = `Find recent open`;
     
-    if (location) {
-      prompt += ` in ${location}`;
+    // Add location type (remote or specific location)
+    if (location.toLowerCase().includes('remote')) {
+      prompt += ` remote`;
+    } else if (location) {
+      prompt += ` ${location}`;
     }
     
-    if (experience) {
-      prompt += ` at the ${experience} level`;
+    // Add job posting timeframe and variations of the role
+    prompt += ` job postings for "${role}"`;
+    
+    // Add role variations
+    const roleParts = role.split(' ');
+    if (roleParts.length > 1) {
+      prompt += ` OR "${roleParts[0]} ${roleParts[roleParts.length-1]}"`;
+      prompt += ` OR "${roleParts[roleParts.length-1]}"`;
     }
     
-    prompt += `. Include direct application links when possible. Focus on the most relevant job boards and company career pages. Highlight roles with good compensation and growth potential.`;
+    prompt += ` posted in the last 30 days.`;
+    
+    // Add exclusions
+    if (location.toLowerCase().includes('remote')) {
+      prompt += ` Exclude positions requiring location restrictions, specific time zones, or work authorization in specific countries.`;
+    }
+    
+    // Add industry focus
+    prompt += ` Focus on SaaS platforms, educational technology companies, and technology organizations.`;
+    
+    // Add responsibility focus based on role keywords
+    if (role.toLowerCase().includes('manager') || role.toLowerCase().includes('lead')) {
+      prompt += ` Include roles that mention leadership, strategy, and team management as key responsibilities.`;
+    } else if (role.toLowerCase().includes('developer') || role.toLowerCase().includes('engineer')) {
+      prompt += ` Include roles that mention product development, coding, and technical implementation as key responsibilities.`;
+    } else if (role.toLowerCase().includes('designer')) {
+      prompt += ` Include roles that mention user experience, design systems, and creative problem-solving as key responsibilities.`;
+    } else if (role.toLowerCase().includes('community') || role.toLowerCase().includes('support')) {
+      prompt += ` Include roles that mention engagement, growth, and program development as key responsibilities.`;
+    } else {
+      prompt += ` Include details about required skills, experience level, and primary responsibilities.`;
+    }
     
     const url = `https://www.perplexity.ai/?q=${encodeURIComponent(prompt)}`;
     
@@ -231,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function createClaudePrompt(job, cv, careerGoals) {
-    return `I need help customizing my CV and creating a cover letter for a job application. Here are the details:
+    return `I need help customizing my CV and creating a cover letter for a job application. Please structure your response as JSON that can be used with my template.
   
   JOB DETAILS:
   Title: ${job.title}
@@ -245,49 +271,92 @@ document.addEventListener('DOMContentLoaded', function() {
   CAREER GOALS:
   ${careerGoals}
   
-  Please help me by:
-  1. Analyzing the job description and identifying key skills and requirements
-  2. Tailoring my CV to highlight relevant experience and skills for this position
-  3. Creating a compelling cover letter that addresses why I'm a good fit for this role
-  4. Formatting the result as a JSON object with the following structure:
+  Please create a JSON object with exactly the following structure that will be used to populate my CV template:
   
   {
-    "tailoredCV": {
-      "name": "",
-      "contactInfo": {
-        "email": "",
-        "phone": "",
-        "location": ""
-      },
-      "summary": "",
-      "experience": [
-        {
-          "title": "",
-          "company": "",
-          "dates": "",
-          "responsibilities": ["", ""]
-        }
-      ],
-      "education": [
-        {
-          "degree": "",
-          "institution": "",
-          "dates": ""
-        }
-      ],
-      "skills": ["", ""],
-      "certifications": ["", ""]
-    },
+    "fullName": "Your full name extracted from my CV",
+    "jobTitle": "Suggested job title based on the target role",
+    "summary": "A compelling professional summary tailored to this role (max 2 sentences)",
+    "email": "My email from the CV",
+    "linkedin": "My LinkedIn URL (if in CV) or just 'linkedin.com/in/yourname' as placeholder",
+    "phone": "My phone number from the CV",
+    "location": "My location from the CV",
+    
+    "experience": [
+      {
+        "jobTitle": "Position title",
+        "company": "Company name",
+        "dates": "Start date - End date (or Present)",
+        "description": "Brief description of role focused on relevant responsibilities",
+        "achievements": [
+          "Achievement 1 with quantifiable results",
+          "Achievement 2 with quantifiable results",
+          "Achievement 3 with quantifiable results"
+        ]
+      }
+    ],
+    
+    "education": [
+      {
+        "degree": "Degree name",
+        "institution": "Institution name",
+        "dates": "Start year - End year"
+      }
+    ],
+    
+    "skills": [
+      "Skill category 1: Specific skills listed comma-separated",
+      "Skill category 2: Specific skills listed comma-separated"
+    ],
+    
+    "certifications": [
+      "Certification 1 with year if available",
+      "Certification 2 with year if available"
+    ],
+    
     "coverLetter": {
-      "greeting": "",
-      "opening": "",
-      "body": "",
-      "closing": "",
-      "signature": ""
+      "greeting": "Dear Hiring Manager,",
+      "opening": "A compelling opening paragraph expressing interest in the role",
+      "body": "2-3 paragraphs highlighting relevant experience and why I'm a good fit",
+      "closing": "A brief closing paragraph with a call to action",
+      "signature": "Sincerely,\\nMy Name"
     }
   }
   
-  Please return ONLY the JSON object, with no additional explanation or commentary.`;
+  Important formatting requirements:
+  1. Format the experience section with each job as:
+     <div class="job">
+       <div class="job-title">Job Title</div>
+       <div class="job-company-date">
+         <span>Company Name</span>
+         <span>Start Date - End Date</span>
+       </div>
+       <div class="job-description">Brief description of responsibilities</div>
+       <ul class="job-achievements">
+         <li>Achievement 1</li>
+         <li>Achievement 2</li>
+         <li>Achievement 3</li>
+       </ul>
+     </div>
+  
+  2. Format the education section with each item as:
+     <div class="education-item">
+       <div class="education-title">Degree Name</div>
+       <div class="education-inst-date">
+         <span>Institution Name</span>
+         <span>Start Year - End Year</span>
+       </div>
+     </div>
+  
+  3. Format skills as a list of paragraphs with categories in bold:
+     <p><span class="skill-category">Category 1:</span> Skill 1, Skill 2, Skill 3</p>
+     <p><span class="skill-category">Category 2:</span> Skill 4, Skill 5, Skill 6</p>
+  
+  4. Format certifications as a simple list:
+     <p>Certification 1</p>
+     <p>Certification 2</p>
+  
+  Please return ONLY the JSON object, with no additional explanation or commentary. Make sure all HTML formatting is included directly in the JSON string values.`;
   }
   
   // Profile Tab Functions
@@ -319,12 +388,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function previewCVAndCoverLetter() {
     const jsonInput = document.getElementById('cv-json').value;
     
+    if (!jsonInput.trim()) {
+      alert('Please paste the JSON output from Claude first.');
+      return;
+    }
+    
     try {
-      const data = JSON.parse(jsonInput);
-      const templateStyle = document.getElementById('template-style').value;
-      
-      // Generate HTML for preview
-      const previewHTML = generateCVAndCoverLetterHTML(data, templateStyle);
+      // Generate HTML for preview using the modern template
+      const previewHTML = generateCVPreview(jsonInput);
       
       // Save HTML to temporary storage
       browser.storage.local.set({ previewHTML }).then(() => {
@@ -333,6 +404,560 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     } catch (e) {
       alert('Error parsing JSON. Please make sure you pasted the correct format from Claude.');
+    }
+  }
+  
+  // Update the preview.html page to use the stored HTML
+  // This goes in the preview/preview.html script section
+  /*
+  document.addEventListener('DOMContentLoaded', function() {
+    browser.storage.local.get('previewHTML').then(result => {
+      if (result.previewHTML) {
+        // Replace the entire document with the generated HTML
+        document.open();
+        document.write(result.previewHTML);
+        document.close();
+      } else {
+        document.body.innerHTML = '<p>No preview available. Please generate a CV first.</p>';
+      }
+    }).catch(error => {
+      console.error("Error loading preview:", error);
+      document.body.innerHTML = '<p>Error loading preview. Please try again.</p>';
+    });
+  });
+  */
+
+  function generateCVPreview(jsonData) {
+    // Load the modern template HTML
+    const templateHTML = `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Professional CV</title>
+      <style>
+          :root {
+              --primary-color: #20BF55;
+              --secondary-color: #104738;
+              --text-color: #333;
+              --light-text: #666;
+              --accent-color: #0077B5;
+              --background-color: #f5f5f5;
+              --card-background: white;
+              --heading-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          }
+  
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              font-family: var(--body-font);
+          }
+          
+          body {
+              background-color: var(--background-color);
+              color: var(--text-color);
+              line-height: 1.4;
+              font-size: 14px;
+              padding: 25px;
+          }
+          
+          .cv-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background-color: var(--card-background);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+              padding: 30px;
+          }
+          
+          /* Header section */
+          .header {
+              display: table;
+              width: 100%;
+              margin-bottom: 25px;
+              border-bottom: 1px solid #eee;
+              padding-bottom: 15px;
+          }
+  
+          .name-title {
+              display: table-cell;
+              width: 65%;
+              vertical-align: top;
+          }
+  
+          .contact-info {
+              display: table-cell;
+              width: 35%;
+              vertical-align: top;
+              text-align: right;
+          }
+          
+          h1 {
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 2px;
+          }
+          
+          h2 {
+              font-size: 18px;
+              font-weight: 500;
+              color: var(--accent-color);
+              margin-bottom: 10px;
+          }
+          
+          .summary {
+              font-size: 14px;
+              margin-top: 8px;
+              max-width: 95%;
+              line-height: 1.4;
+          }
+          
+          .contact-info-label {
+              font-size: 13px;
+              color: var(--light-text);
+              margin-bottom: 2px;
+              margin-top: 8px;
+              font-weight: 500;
+          }
+          
+          .contact-info-value {
+              font-size: 13px;
+              margin-bottom: 5px;
+          }
+          
+          .contact-info a {
+              color: var(--accent-color);
+              text-decoration: none;
+          }
+          
+          /* Main content layout */
+          .content {
+              display: table;
+              width: 100%;
+          }
+  
+          .left-column {
+              display: table-cell;
+              width: 65%;
+              vertical-align: top;
+              padding-right: 20px;
+          }
+  
+          .right-column {
+              display: table-cell;
+              width: 35%;
+              vertical-align: top;
+          }
+          
+          /* Section styling */
+          .section-title {
+              font-size: 16px;
+              font-weight: 600;
+              margin-bottom: 15px;
+              color: var(--secondary-color);
+              border-bottom: 1px solid #eee;
+              padding-bottom: 5px;
+          }
+          
+          /* Experience items */
+          .job {
+              margin-bottom: 15px;
+          }
+          
+          .job-title {
+              font-weight: 600;
+              font-size: 15px;
+              margin-bottom: 1px;
+          }
+          
+          .job-company-date {
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              color: var(--light-text);
+              margin-bottom: 5px;
+              font-style: italic;
+          }
+          
+          .job-description {
+              font-size: 13px;
+              margin-bottom: 3px;
+          }
+          
+          .job-achievements {
+              padding-left: 18px;
+              margin-top: 5px;
+              font-size: 13px;
+          }
+          
+          .job-achievements li {
+              margin-bottom: 3px;
+          }
+          
+          /* Education items */
+          .education-item {
+              margin-bottom: 12px;
+          }
+          
+          .education-title {
+              font-weight: 600;
+              font-size: 14px;
+              margin-bottom: 1px;
+          }
+          
+          .education-inst-date {
+              display: flex;
+              justify-content: space-between;
+              font-size: 13px;
+              color: var(--light-text);
+              font-style: italic;
+              margin-bottom: 3px;
+          }
+  
+          .job-company-date, .education-inst-date {
+              display: table;
+              width: 100%;
+          }
+  
+          .job-company-date span:first-child,
+          .education-inst-date span:first-child {
+              display: table-cell;
+              text-align: left;
+          }
+  
+          .job-company-date span:last-child,
+          .education-inst-date span:last-child {
+              display: table-cell;
+              text-align: right;
+          }
+          
+          /* Skills and other sections */
+          .skills-list {
+              margin-bottom: 15px;
+          }
+          
+          .skill-category {
+              font-weight: 600;
+              display: inline;
+          }
+          
+          /* Print styles */
+          @media print {
+              body {
+                  padding: 0;
+                  background-color: white;
+                  font-size: 12px;
+              }
+              
+              .cv-container {
+                  box-shadow: none;
+                  padding: 20px;
+                  max-width: 100%;
+              }
+              
+              h1 {
+                  font-size: 22px;
+              }
+              
+              h2 {
+                  font-size: 16px;
+              }
+              
+              .summary, .job-description, .job-achievements, .education-item, .skills-list {
+                  font-size: 11px;
+              }
+              
+              .section-title {
+                  font-size: 14px;
+              }
+          }
+  
+          /* Enhanced print styles */
+          @media print {
+              body {
+                  padding: 0;
+                  background-color: white;
+                  font-size: 12px;
+              }
+              
+              .cv-container {
+                  box-shadow: none;
+                  padding: 20px;
+                  max-width: 100%;
+                  margin: 0;
+              }
+              
+              h1 {
+                  font-size: 22px;
+              }
+              
+              h2 {
+                  font-size: 16px;
+              }
+              
+              .summary, .job-description, .job-achievements, .education-item, .skills-list {
+                  font-size: 11px;
+              }
+              
+              .section-title {
+                  font-size: 14px;
+              }
+              
+              /* Ensure page breaks don't occur in the middle of sections */
+              .job, .education-item {
+                  page-break-inside: avoid;
+              }
+              
+              /* Ensure colors print properly - using the prefixed version only */
+              * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+              }
+          }
+  
+          /* Responsive styles */
+          @media (max-width: 768px) {
+              .content, .header {
+                  display: block; /* Change from table to block for mobile */
+              }
+              .name-title, .contact-info, .left-column, .right-column {
+                  display: block;
+                  width: 100%;
+                  text-align: left;
+              }
+              
+              .contact-info {
+                  text-align: left;
+                  margin-top: 15px;
+              }
+              
+              .left-column, .right-column {
+                  width: 100%;
+              }
+          }
+          
+          /* Cover Letter Styles */
+          .cover-letter-container {
+              max-width: 800px;
+              margin: 50px auto 0;
+              background-color: var(--card-background);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+              padding: 30px;
+          }
+          
+          .cover-letter-header {
+              margin-bottom: 30px;
+          }
+          
+          .cover-letter-applicant {
+              margin-bottom: 20px;
+          }
+          
+          .cover-letter-recipient {
+              margin-bottom: 20px;
+          }
+          
+          .cover-letter-greeting {
+              margin-bottom: 20px;
+          }
+          
+          .cover-letter-content {
+              margin-bottom: 20px;
+          }
+          
+          .cover-letter-closing {
+              margin-bottom: 10px;
+          }
+          
+          .cover-letter-signature {
+              margin-top: 30px;
+          }
+          
+          .print-controls {
+              max-width: 800px;
+              margin: 20px auto;
+              text-align: center;
+          }
+          
+          .print-controls button {
+              background-color: var(--accent-color);
+              color: white;
+              border: none;
+              padding: 10px 15px;
+              margin: 0 5px;
+              border-radius: 4px;
+              cursor: pointer;
+              font-size: 14px;
+          }
+          
+          .print-controls button:hover {
+              background-color: #005582;
+          }
+          
+          @media print {
+              .print-controls {
+                  display: none;
+              }
+              
+              .cover-letter-container {
+                  break-before: page;
+              }
+          }
+      </style>
+  </head>
+  <body>
+      <div class="print-controls">
+          <button onclick="window.print()">Print CV & Cover Letter</button>
+          <button onclick="printCV()">Print CV Only</button>
+          <button onclick="printCoverLetter()">Print Cover Letter Only</button>
+          <button onclick="window.close()">Close Preview</button>
+      </div>
+  
+      <div class="cv-container">
+          <div class="header">
+              <div class="name-title">
+                  <h1>{{fullName}}</h1>
+                  <h2>{{jobTitle}}</h2>
+                  <p class="summary">{{summary}}</p>
+              </div>
+              <div class="contact-info">
+                  <div class="contact-info-label">Email</div>
+                  <div class="contact-info-value"><a href="mailto:{{email}}">{{email}}</a></div>
+          
+                  <div class="contact-info-label">LinkedIn</div>
+                  <div class="contact-info-value"><a href="{{linkedin}}">{{linkedin}}</a></div>
+          
+                  <div class="contact-info-label">Phone</div>
+                  <div class="contact-info-value">{{phone}}</div>
+          
+                  <div class="contact-info-label">Location</div>
+                  <div class="contact-info-value">{{location}}</div>
+              </div>
+          </div>
+          
+          <div class="content">
+              <div class="left-column">
+                  <h3 class="section-title">Work experience</h3>
+                  {{experience}}
+              </div>
+          
+              <div class="right-column">
+                  <h3 class="section-title">Education & Learning</h3>
+                  {{education}}
+          
+                  <h3 class="section-title">Skills</h3>
+                  <div class="skills-list">
+                      {{skills}}
+                  </div>
+          
+                  <h3 class="section-title">Certifications</h3>
+                  <div class="skills-list">
+                      {{certifications}}
+                  </div>
+              </div>
+          </div>
+      </div>
+      
+      <div class="cover-letter-container">
+          <div class="cover-letter-header">
+              <h1>Cover Letter</h1>
+          </div>
+          
+          <div class="cover-letter-applicant">
+              <p>{{fullName}}</p>
+              <p>{{email}}</p>
+              <p>{{phone}}</p>
+              <p>{{location}}</p>
+          </div>
+          
+          <div class="cover-letter-greeting">
+              <p>{{coverLetterGreeting}}</p>
+          </div>
+          
+          <div class="cover-letter-content">
+              {{coverLetterBody}}
+          </div>
+          
+          <div class="cover-letter-closing">
+              <p>{{coverLetterClosing}}</p>
+          </div>
+          
+          <div class="cover-letter-signature">
+              <p>{{coverLetterSignature}}</p>
+          </div>
+      </div>
+      
+      <script>
+          function printCV() {
+              document.querySelector('.cover-letter-container').style.display = 'none';
+              window.print();
+              document.querySelector('.cover-letter-container').style.display = 'block';
+          }
+          
+          function printCoverLetter() {
+              document.querySelector('.cv-container').style.display = 'none';
+              window.print();
+              document.querySelector('.cv-container').style.display = 'block';
+          }
+      </script>
+  </body>
+  </html>`;
+  
+    try {
+      const data = JSON.parse(jsonData);
+      
+      // Replace placeholders with actual data
+      let filledTemplate = templateHTML
+        .replace('{{fullName}}', data.fullName || '')
+        .replace('{{jobTitle}}', data.jobTitle || '')
+        .replace('{{summary}}', data.summary || '')
+        .replace('{{email}}', data.email || '')
+        .replace('{{linkedin}}', data.linkedin || '')
+        .replace('{{phone}}', data.phone || '')
+        .replace('{{location}}', data.location || '');
+      
+      // Handle experience section - using the HTML directly from JSON
+      let experienceHTML = '';
+      if (data.experience && Array.isArray(data.experience)) {
+        experienceHTML = data.experience.join('\n');
+      }
+      filledTemplate = filledTemplate.replace('{{experience}}', experienceHTML);
+      
+      // Handle education section - using the HTML directly from JSON
+      let educationHTML = '';
+      if (data.education && Array.isArray(data.education)) {
+        educationHTML = data.education.join('\n');
+      }
+      filledTemplate = filledTemplate.replace('{{education}}', educationHTML);
+      
+      // Handle skills section - using the HTML directly from JSON
+      let skillsHTML = '';
+      if (data.skills && Array.isArray(data.skills)) {
+        skillsHTML = data.skills.map(skill => `<p>${skill}</p>`).join('\n');
+      }
+      filledTemplate = filledTemplate.replace('{{skills}}', skillsHTML);
+      
+      // Handle certifications section - using the HTML directly from JSON
+      let certificationsHTML = '';
+      if (data.certifications && Array.isArray(data.certifications)) {
+        certificationsHTML = data.certifications.map(cert => `<p>${cert}</p>`).join('\n');
+      }
+      filledTemplate = filledTemplate.replace('{{certifications}}', certificationsHTML);
+      
+      // Handle cover letter sections
+      if (data.coverLetter) {
+        filledTemplate = filledTemplate
+          .replace('{{coverLetterGreeting}}', data.coverLetter.greeting || '')
+          .replace('{{coverLetterBody}}', data.coverLetter.body.split('\n').map(para => `<p>${para}</p>`).join('\n') || '')
+          .replace('{{coverLetterClosing}}', data.coverLetter.closing || '')
+          .replace('{{coverLetterSignature}}', data.coverLetter.signature.replace(/\\n/g, '<br>') || '');
+      }
+      
+      return filledTemplate;
+    } catch (e) {
+      console.error("Error generating CV preview:", e);
+      return `<html><body><h1>Error</h1><p>There was an error generating your CV preview: ${e.message}</p></body></html>`;
     }
   }
   

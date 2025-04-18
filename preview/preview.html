@@ -3,33 +3,24 @@
 <head>
   <meta charset="utf-8">
   <title>CV & Cover Letter Preview</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    }
-    
-    #preview-container {
-      margin: 0;
-      padding: 0;
-    }
-  </style>
 </head>
 <body>
-  <div id="preview-container"></div>
+  <div id="loading">Loading preview...</div>
   
   <script>
-    // Load preview HTML from storage
+    // Load preview HTML from storage and replace the entire document
     browser.storage.local.get('previewHTML').then(result => {
       if (result.previewHTML) {
-        document.getElementById('preview-container').innerHTML = result.previewHTML;
+        // Replace the entire document with the generated HTML
+        document.open();
+        document.write(result.previewHTML);
+        document.close();
       } else {
-        document.getElementById('preview-container').innerHTML = '<p>No preview available. Please generate a CV first.</p>';
+        document.body.innerHTML = '<p>No preview available. Please generate a CV first.</p>';
       }
     }).catch(error => {
       console.error("Error loading preview:", error);
-      document.getElementById('preview-container').innerHTML = '<p>Error loading preview. Please try again.</p>';
+      document.body.innerHTML = '<p>Error loading preview. Please try again.</p>';
     });
   </script>
 </body>

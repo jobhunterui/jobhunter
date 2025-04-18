@@ -173,6 +173,165 @@ button:hover {
   background-color: #c0392b;
 }
 
+/* Job item styling updates */
+.job-item {
+  position: relative;
+  padding-bottom: 35px;
+}
+
+.job-url {
+  font-size: 12px;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-url a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.job-url a:hover {
+  text-decoration: underline;
+}
+
+.job-item-actions {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+}
+
+.view-details-btn {
+  font-size: 12px;
+  padding: 3px 8px;
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.view-details-btn:hover {
+  background-color: #e0e0e0;
+}
+
+/* Modal styling */
+.job-details-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.job-details-modal.active {
+  opacity: 1;
+}
+
+.job-details-content {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.full-description-content {
+  max-width: 600px;
+}
+
+.job-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #eee;
+}
+
+.job-details-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.job-details-body {
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.job-description-preview {
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.job-description-preview h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
+.full-description-text {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.job-details-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.job-details-actions button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.view-full-description {
+  background-color: #3498db;
+}
+
+.open-original {
+  background-color: #2ecc71;
+}
+
+.close-details {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
 .refresh-section {
   display: flex;
   justify-content: flex-end;

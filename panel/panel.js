@@ -217,49 +217,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const location = document.getElementById('location').value.trim();
     const experience = document.getElementById('experience').value;
     
-    // Create a more sophisticated prompt for Perplexity as requested
-    let prompt = `Find recent open`;
+    if (!role) {
+      alert('Please enter a job role to search for.');
+      return;
+    }
     
-    // Add location type (remote or specific location)
+    // Create an improved prompt that's more focused on job search quality
+    let prompt = `Find recent job postings for "${role}"`;
+    
+    // Add location context if provided
     if (location.toLowerCase().includes('remote')) {
-      prompt += ` remote`;
+      prompt += ` that are fully remote`;
     } else if (location) {
-      prompt += ` ${location}`;
+      prompt += ` in ${location}`;
     }
     
-    // Add job posting timeframe and variations of the role
-    prompt += ` job postings for "${role}"`;
-    
-    // Add role variations
-    const roleParts = role.split(' ');
-    if (roleParts.length > 1) {
-      prompt += ` OR "${roleParts[0]} ${roleParts[roleParts.length-1]}"`;
-      prompt += ` OR "${roleParts[roleParts.length-1]}"`;
+    // Add experience level context if provided
+    if (experience) {
+      const experienceText = {
+        'entry': 'entry-level or junior',
+        'mid': 'mid-level',
+        'senior': 'senior-level',
+        'lead': 'leadership or management level'
+      }[experience] || '';
+      
+      if (experienceText) {
+        prompt += ` for ${experienceText} candidates`;
+      }
     }
     
+    // Add time relevance
     prompt += ` posted in the last 30 days.`;
     
-    // Add exclusions
-    if (location.toLowerCase().includes('remote')) {
-      prompt += ` Exclude positions requiring location restrictions, specific time zones, or work authorization in specific countries.`;
-    }
-    
-    // Add industry focus
-    prompt += ` Focus on SaaS platforms, educational technology companies, and technology organizations.`;
-    
-    // Add responsibility focus based on role keywords
-    if (role.toLowerCase().includes('manager') || role.toLowerCase().includes('lead')) {
-      prompt += ` Include roles that mention leadership, strategy, and team management as key responsibilities.`;
-    } else if (role.toLowerCase().includes('developer') || role.toLowerCase().includes('engineer')) {
-      prompt += ` Include roles that mention product development, coding, and technical implementation as key responsibilities.`;
-    } else if (role.toLowerCase().includes('designer')) {
-      prompt += ` Include roles that mention user experience, design systems, and creative problem-solving as key responsibilities.`;
-    } else if (role.toLowerCase().includes('community') || role.toLowerCase().includes('support')) {
-      prompt += ` Include roles that mention engagement, growth, and program development as key responsibilities.`;
-    } else {
-      prompt += ` Include details about required skills, experience level, and primary responsibilities.`;
-    }
-    
+    // Add instructions for high-quality results
+    prompt += ` For each position, provide:
+  1. Job title and company
+  2. Location and remote options
+  3. Salary range if available
+  4. Key responsibilities and required skills
+  5. Direct application link
+  6. Any notable benefits or company culture details
+  
+  Focus on active job listings from reputable companies with complete information. Exclude outdated or vague listings.`;
+  
     const url = `https://www.perplexity.ai/?q=${encodeURIComponent(prompt)}`;
     
     browser.tabs.create({ url });
@@ -281,13 +281,29 @@ document.addEventListener('DOMContentLoaded', function() {
           jobItem.className = 'job-item';
           jobItem.setAttribute('data-index', index);
           
+          // Add a URL display that's shortened if too long
+          const displayUrl = job.url ? 
+            (job.url.length > 40 ? job.url.substring(0, 37) + '...' : job.url) : 
+            'URL not available';
+          
           jobItem.innerHTML = `
-            <div class="job-title">${job.title}</div>
-            <div class="job-company">${job.company}</div>
+            <div class="job-title">${job.title || 'Untitled Position'}</div>
+            <div class="job-company">${job.company || 'Company not specified'}</div>
             <div class="job-location">${job.location || 'Location not specified'}</div>
+            <div class="job-url"><a href="${job.url}" target="_blank" title="${job.url}">${displayUrl}</a></div>
+            <div class="job-item-actions">
+              <button class="view-details-btn">View Details</button>
+            </div>
           `;
           
-          jobItem.addEventListener('click', () => {
+          // Add selection functionality
+          jobItem.addEventListener('click', (e) => {
+            // Don't select if clicking on the view details button or the URL link
+            if (e.target.classList.contains('view-details-btn') || 
+                e.target.tagName === 'A') {
+              return;
+            }
+            
             // Toggle selection
             document.querySelectorAll('.job-item').forEach(item => {
               item.classList.remove('selected');
@@ -297,6 +313,13 @@ document.addEventListener('DOMContentLoaded', function() {
             jobActions.classList.remove('hidden');
           });
           
+          // Add view details functionality
+          const viewDetailsBtn = jobItem.querySelector('.view-details-btn');
+          viewDetailsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent selection of the job item
+            showJobDetails(job);
+          });
+          
           savedJobsList.appendChild(jobItem);
         });
       } else {
@@ -304,6 +327,139 @@ document.addEventListener('DOMContentLoaded', function() {
         jobActions.classList.add('hidden');
       }
     });
+  }
+
+  // Function to show job details
+  function showJobDetails(job) {
+    // Create modal element
+    const modal = document.createElement('div');
+    modal.className = 'job-details-modal';
+    
+    // Create shortened description (first 300 chars)
+    const shortDescription = job.description && job.description.length > 300 
+      ? job.description.substring(0, 300) + '...' 
+      : job.description || 'No description available';
+    
+    // Add content to modal
+    modal.innerHTML = `
+      <div class="job-details-content">
+        <div class="job-details-header">
+          <h3>${job.title || 'Untitled Position'}</h3>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="job-details-body">
+          <p><strong>Company:</strong> ${job.company || 'Not specified'}</p>
+          <p><strong>Location:</strong> ${job.location || 'Not specified'}</p>
+          <p><strong>URL:</strong> <a href="${job.url}" target="_blank">${job.url || 'Not available'}</a></p>
+          <div class="job-description-preview">
+            <h4>Description Preview:</h4>
+            <p>${shortDescription}</p>
+          </div>
+          <div class="job-details-actions">
+            <button class="view-full-description">View Full Description</button>
+            <button class="open-original">Open Original Page</button>
+            <button class="close-details">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add modal to document
+    document.body.appendChild(modal);
+    
+    // Show modal with fade-in effect
+    setTimeout(() => {
+      modal.classList.add('active');
+    }, 10);
+    
+    // Set up close button
+    modal.querySelector('.close-modal').addEventListener('click', () => {
+      closeModal(modal);
+    });
+    
+    // Set up close details button
+    modal.querySelector('.close-details').addEventListener('click', () => {
+      closeModal(modal);
+    });
+    
+    // Set up view full description button
+    modal.querySelector('.view-full-description').addEventListener('click', () => {
+      showFullDescription(job.description || 'No description available');
+    });
+    
+    // Set up open original button
+    modal.querySelector('.open-original').addEventListener('click', () => {
+      if (job.url) {
+        browser.tabs.create({ url: job.url });
+      } else {
+        alert('Original URL not available');
+      }
+    });
+    
+    // Close when clicking outside the modal content
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal(modal);
+      }
+    });
+  }
+
+  // Function to show full description in a new modal
+  function showFullDescription(description) {
+    // Create modal element
+    const modal = document.createElement('div');
+    modal.className = 'job-details-modal full-description-modal';
+    
+    // Add content to modal
+    modal.innerHTML = `
+      <div class="job-details-content full-description-content">
+        <div class="job-details-header">
+          <h3>Full Job Description</h3>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="job-details-body">
+          <div class="full-description-text">
+            ${description.replace(/\n/g, '<br>')}
+          </div>
+          <div class="job-details-actions">
+            <button class="close-details">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add modal to document
+    document.body.appendChild(modal);
+    
+    // Show modal with fade-in effect
+    setTimeout(() => {
+      modal.classList.add('active');
+    }, 10);
+    
+    // Set up close button
+    modal.querySelector('.close-modal').addEventListener('click', () => {
+      closeModal(modal);
+    });
+    
+    // Set up close details button
+    modal.querySelector('.close-details').addEventListener('click', () => {
+      closeModal(modal);
+    });
+    
+    // Close when clicking outside the modal content
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal(modal);
+      }
+    });
+  }
+
+  // Function to close modal
+  function closeModal(modal) {
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.remove();
+    }, 300); // Wait for transition to complete
   }
   
   function removeSelectedJob() {

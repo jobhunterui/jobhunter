@@ -173,6 +173,34 @@ button:hover {
   background-color: #c0392b;
 }
 
+.refresh-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.refresh-button:hover {
+  background-color: #e0e0e0;
+}
+
+.refresh-button svg {
+  margin-right: 3px;
+}
+
 .hidden {
   display: none;
 }
@@ -212,4 +240,61 @@ button:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.linkedin-phrases-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: #3498db;
+  margin-bottom: 8px;
+}
+
+.linkedin-phrases-toggle svg {
+  margin-right: 5px;
+  transition: transform 0.3s ease;
+}
+
+.linkedin-phrases-toggle.active svg {
+  transform: rotate(180deg);
+}
+
+.linkedin-phrases-options {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.phrase-option {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.phrase-option label {
+  display: inline;
+  margin-left: 5px;
+  font-weight: normal;
+  font-size: 13px;
+}
+
+.custom-phrase {
+  display: flex;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.custom-phrase input {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+.custom-phrase button {
+  padding: 5px 10px;
+  font-size: 13px;
+  background-color: #2ecc71;
 }

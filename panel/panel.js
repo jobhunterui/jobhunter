@@ -27,6 +27,51 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('search-linkedin-feed').addEventListener('click', searchOnLinkedInFeed);
     document.getElementById('search-google').addEventListener('click', searchOnGoogle);
     document.getElementById('search-ai').addEventListener('click', searchWithAI);
+
+    // Setup LinkedIn phrases features
+    document.getElementById('show-linkedin-phrases').addEventListener('click', function() {
+      const optionsEl = document.getElementById('linkedin-phrases-options');
+      const toggleEl = document.getElementById('show-linkedin-phrases');
+      
+      if (optionsEl.classList.contains('hidden')) {
+        optionsEl.classList.remove('hidden');
+        toggleEl.classList.add('active');
+      } else {
+        optionsEl.classList.add('hidden');
+        toggleEl.classList.remove('active');
+      }
+    });
+
+    document.getElementById('add-custom-phrase').addEventListener('click', function() {
+      const customPhraseInput = document.getElementById('custom-phrase');
+      const phrase = customPhraseInput.value.trim();
+      
+      if (phrase) {
+        // Create new checkbox option
+        const phraseOption = document.createElement('div');
+        phraseOption.className = 'phrase-option';
+        
+        const id = 'phrase-custom-' + Date.now();
+        
+        phraseOption.innerHTML = `
+          <input type="checkbox" id="${id}" name="linkedin-phrase" value="${phrase}" checked>
+          <label for="${id}">"${phrase}"</label>
+        `;
+        
+        // Insert before the custom phrase input
+        const customPhraseDiv = document.querySelector('.custom-phrase');
+        customPhraseDiv.parentNode.insertBefore(phraseOption, customPhraseDiv);
+        
+        // Clear input
+        customPhraseInput.value = '';
+        
+        // Save custom phrases to storage
+        saveLinkedInPhrases();
+      }
+    });
+
+    // Load LinkedIn phrases
+    loadLinkedInPhrases();
     
     // Setup profile save button
     document.getElementById('save-profile').addEventListener('click', saveProfileData);
@@ -34,12 +79,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup job actions
     document.getElementById('generate-application').addEventListener('click', generateApplication);
     document.getElementById('remove-job').addEventListener('click', removeSelectedJob);
+
+    // Setup refresh jobs button
+    document.getElementById('refresh-jobs').addEventListener('click', function() {
+      // Clear the jobs list and reload from storage
+      document.getElementById('saved-jobs-list').innerHTML = '<div class="loading-jobs">Loading saved jobs...</div>';
+      
+      // Add a small delay to show the loading message
+      setTimeout(() => {
+        loadSavedJobs();
+      }, 300);
+    });
     
     // Setup CV preview button
     document.getElementById('preview-cv').addEventListener('click', previewCVAndCoverLetter);
 
     console.log("Event listeners set up completed");
   });
+
+  // LinkedIn Phrases Management Functions
+  function loadLinkedInPhrases() {
+    browser.storage.local.get('linkedinPhrases').then(result => {
+      if (result.linkedinPhrases && Array.isArray(result.linkedinPhrases)) {
+        const customPhraseDiv = document.querySelector('.custom-phrase');
+        
+        result.linkedinPhrases.forEach(phrase => {
+          // Check if this phrase already exists
+          const exists = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]'))
+            .some(input => input.value === phrase);
+          
+          if (!exists) {
+            const phraseOption = document.createElement('div');
+            phraseOption.className = 'phrase-option';
+            
+            const id = 'phrase-custom-' + Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            phraseOption.innerHTML = `
+              <input type="checkbox" id="${id}" name="linkedin-phrase" value="${phrase}" checked>
+              <label for="${id}">"${phrase}"</label>
+            `;
+            
+            customPhraseDiv.parentNode.insertBefore(phraseOption, customPhraseDiv);
+          }
+        });
+      }
+    });
+  }
+
+  function saveLinkedInPhrases() {
+    const customPhrases = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]'))
+      .filter(input => !['we are hiring', 'join our team', 'job opening', 'open position', 
+                        'now hiring', 'looking for', 'immediate opening'].includes(input.value))
+      .map(input => input.value);
+    
+    browser.storage.local.set({ linkedinPhrases: customPhrases });
+  }
   
   // Find Jobs Tab Functions
   function searchOnLinkedIn() {
@@ -65,11 +159,31 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function searchOnLinkedInFeed() {
-    const role = encodeURIComponent(document.getElementById('role').value);
-    const location = encodeURIComponent(document.getElementById('location').value);
+    const role = document.getElementById('role').value.trim();
+    const location = document.getElementById('location').value.trim();
     
-    // LinkedIn feed with search parameters
-    const url = `https://www.linkedin.com/feed/jobs/?keywords=${role}&location=${location}`;
+    // Get selected phrases
+    const selectedPhrases = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]:checked'))
+      .map(input => input.value);
+    
+    if (selectedPhrases.length === 0) {
+      alert('Please select at least one search phrase for LinkedIn feed search.');
+      return;
+    }
+    
+    // Select a random phrase from selected options
+    const randomPhrase = selectedPhrases[Math.floor(Math.random() * selectedPhrases.length)];
+    
+    // Generate the search URL for LinkedIn feed
+    const searchParams = new URLSearchParams();
+    searchParams.append('keywords', `${randomPhrase} ${role}`);
+    
+    if (location) {
+      searchParams.append('geo', location);
+    }
+    
+    // Using LinkedIn's search URL for content (posts)
+    const url = `https://www.linkedin.com/search/results/content/?${searchParams.toString()}`;
     
     browser.tabs.create({ url });
   }

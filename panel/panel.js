@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Profile saved successfully!');
     });
   }
-  
+  // Previews only CV
   function previewCVAndCoverLetter() {
     const jsonInput = document.getElementById('cv-json').value;
     

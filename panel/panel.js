@@ -257,7 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function createClaudePrompt(job, cv, careerGoals) {
-    return `I need help customizing my CV and creating a cover letter for a job application. Please structure your response as JSON that can be used with my template.
+    return `I need help creating:
+  1. A tailored CV in JSON format to use with my template 
+  2. A cover letter I can use directly
   
   JOB DETAILS:
   Title: ${job.title}
@@ -271,16 +273,19 @@ document.addEventListener('DOMContentLoaded', function() {
   CAREER GOALS:
   ${careerGoals}
   
-  Please create a JSON object with exactly the following structure that will be used to populate my CV template:
+  First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging.
   
+  Then, please provide my CV information in this exact JSON format that I'll copy back to my extension:
+  
+  \`\`\`json
   {
-    "fullName": "Your full name extracted from my CV",
-    "jobTitle": "Suggested job title based on the target role",
-    "summary": "A compelling professional summary tailored to this role (max 2 sentences)",
-    "email": "My email from the CV",
-    "linkedin": "My LinkedIn URL (if in CV) or just 'linkedin.com/in/yourname' as placeholder",
-    "phone": "My phone number from the CV",
-    "location": "My location from the CV",
+    "fullName": "Your full name from my CV",
+    "jobTitle": "A title that matches the job I'm applying for",
+    "summary": "A concise professional summary tailored to this role",
+    "email": "My email from CV",
+    "linkedin": "My LinkedIn URL from CV (or create one based on my name)",
+    "phone": "My phone number from CV",
+    "location": "My location from CV",
     
     "experience": [
       {
@@ -312,51 +317,11 @@ document.addEventListener('DOMContentLoaded', function() {
     "certifications": [
       "Certification 1 with year if available",
       "Certification 2 with year if available"
-    ],
-    
-    "coverLetter": {
-      "greeting": "Dear Hiring Manager,",
-      "opening": "A compelling opening paragraph expressing interest in the role",
-      "body": "2-3 paragraphs highlighting relevant experience and why I'm a good fit",
-      "closing": "A brief closing paragraph with a call to action",
-      "signature": "Sincerely,\\nMy Name"
-    }
+    ]
   }
+  \`\`\`
   
-  Important formatting requirements:
-  1. Format the experience section with each job as:
-     <div class="job">
-       <div class="job-title">Job Title</div>
-       <div class="job-company-date">
-         <span>Company Name</span>
-         <span>Start Date - End Date</span>
-       </div>
-       <div class="job-description">Brief description of responsibilities</div>
-       <ul class="job-achievements">
-         <li>Achievement 1</li>
-         <li>Achievement 2</li>
-         <li>Achievement 3</li>
-       </ul>
-     </div>
-  
-  2. Format the education section with each item as:
-     <div class="education-item">
-       <div class="education-title">Degree Name</div>
-       <div class="education-inst-date">
-         <span>Institution Name</span>
-         <span>Start Year - End Year</span>
-       </div>
-     </div>
-  
-  3. Format skills as a list of paragraphs with categories in bold:
-     <p><span class="skill-category">Category 1:</span> Skill 1, Skill 2, Skill 3</p>
-     <p><span class="skill-category">Category 2:</span> Skill 4, Skill 5, Skill 6</p>
-  
-  4. Format certifications as a simple list:
-     <p>Certification 1</p>
-     <p>Certification 2</p>
-  
-  Please return ONLY the JSON object, with no additional explanation or commentary. Make sure all HTML formatting is included directly in the JSON string values.`;
+  Make sure the JSON follows this exact structure as my extension will parse it automatically. Prioritize skills and experience that are most relevant to the job description.`;
   }
   
   // Profile Tab Functions
@@ -394,38 +359,389 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     try {
-      // Generate HTML for preview using the modern template
-      const previewHTML = generateCVPreview(jsonInput);
+      // Parse the JSON data
+      const data = JSON.parse(jsonInput);
       
-      // Save HTML to temporary storage
-      browser.storage.local.set({ previewHTML }).then(() => {
-        // Open preview in new tab
-        browser.tabs.create({ url: '/preview/preview.html' });
-      });
+      // Create HTML content directly
+      const htmlContent = `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Professional CV</title>
+      <style>
+          :root {
+              --primary-color: #20BF55;
+              --secondary-color: #104738;
+              --text-color: #333;
+              --light-text: #666;
+              --accent-color: #0077B5;
+              --background-color: #f5f5f5;
+              --card-background: white;
+              --heading-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+              --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+          }
+  
+          * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+              font-family: var(--body-font);
+          }
+          
+          body {
+              background-color: var(--background-color);
+              color: var(--text-color);
+              line-height: 1.4;
+              font-size: 14px;
+              padding: 25px;
+          }
+          
+          .cv-container {
+              max-width: 800px;
+              margin: 0 auto;
+              background-color: var(--card-background);
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+              padding: 30px;
+          }
+          
+          /* Print button */
+          .print-controls {
+              max-width: 800px;
+              margin: 20px auto;
+              text-align: center;
+          }
+          
+          .print-controls button {
+              background-color: #0077B5;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              font-size: 16px;
+              cursor: pointer;
+              border-radius: 4px;
+              margin: 5px;
+          }
+          
+          /* Header section */
+          .header {
+              display: table;
+              width: 100%;
+              margin-bottom: 25px;
+              border-bottom: 1px solid #eee;
+              padding-bottom: 15px;
+          }
+  
+          .name-title {
+              display: table-cell;
+              width: 65%;
+              vertical-align: top;
+          }
+  
+          .contact-info {
+              display: table-cell;
+              width: 35%;
+              vertical-align: top;
+              text-align: right;
+          }
+          
+          h1 {
+              font-size: 24px;
+              font-weight: 600;
+              margin-bottom: 2px;
+          }
+          
+          h2 {
+              font-size: 18px;
+              font-weight: 500;
+              color: var(--accent-color);
+              margin-bottom: 10px;
+          }
+          
+          .summary {
+              font-size: 14px;
+              margin-top: 8px;
+              max-width: 95%;
+              line-height: 1.4;
+          }
+          
+          .contact-info-label {
+              font-size: 13px;
+              color: var(--light-text);
+              margin-bottom: 2px;
+              margin-top: 8px;
+              font-weight: 500;
+          }
+          
+          .contact-info-value {
+              font-size: 13px;
+              margin-bottom: 5px;
+          }
+          
+          .contact-info a {
+              color: var(--accent-color);
+              text-decoration: none;
+          }
+          
+          /* Main content layout */
+          .content {
+              display: table;
+              width: 100%;
+          }
+  
+          .left-column {
+              display: table-cell;
+              width: 65%;
+              vertical-align: top;
+              padding-right: 20px;
+          }
+  
+          .right-column {
+              display: table-cell;
+              width: 35%;
+              vertical-align: top;
+          }
+          
+          /* Section styling */
+          .section-title {
+              font-size: 16px;
+              font-weight: 600;
+              margin-bottom: 15px;
+              color: var(--secondary-color);
+              border-bottom: 1px solid #eee;
+              padding-bottom: 5px;
+          }
+          
+          /* Experience items */
+          .job {
+              margin-bottom: 15px;
+          }
+          
+          .job-title {
+              font-weight: 600;
+              font-size: 15px;
+              margin-bottom: 1px;
+          }
+          
+          .job-company-date {
+              display: table;
+              width: 100%;
+          }
+          
+          .job-company-date span:first-child {
+              display: table-cell;
+              text-align: left;
+              font-size: 13px;
+              color: var(--light-text);
+              margin-bottom: 5px;
+              font-style: italic;
+          }
+          
+          .job-company-date span:last-child {
+              display: table-cell;
+              text-align: right;
+              font-size: 13px;
+              color: var(--light-text);
+              margin-bottom: 5px;
+              font-style: italic;
+          }
+          
+          .job-description {
+              font-size: 13px;
+              margin-bottom: 3px;
+              margin-top: 5px;
+          }
+          
+          .job-achievements {
+              padding-left: 18px;
+              margin-top: 5px;
+              font-size: 13px;
+          }
+          
+          .job-achievements li {
+              margin-bottom: 3px;
+          }
+          
+          /* Education items */
+          .education-item {
+              margin-bottom: 12px;
+          }
+          
+          .education-title {
+              font-weight: 600;
+              font-size: 14px;
+              margin-bottom: 1px;
+          }
+          
+          .education-inst-date {
+              display: table;
+              width: 100%;
+          }
+          
+          .education-inst-date span:first-child {
+              display: table-cell;
+              text-align: left;
+              font-size: 13px;
+              color: var(--light-text);
+              font-style: italic;
+              margin-bottom: 3px;
+          }
+          
+          .education-inst-date span:last-child {
+              display: table-cell;
+              text-align: right;
+              font-size: 13px;
+              color: var(--light-text);
+              font-style: italic;
+              margin-bottom: 3px;
+          }
+          
+          /* Skills and other sections */
+          .skills-list {
+              margin-bottom: 15px;
+          }
+          
+          .skill-category {
+              font-weight: 600;
+              display: inline;
+          }
+          
+          /* Print styles */
+          @media print {
+              body {
+                  padding: 0;
+                  background-color: white;
+                  font-size: 12px;
+              }
+              
+              .cv-container {
+                  box-shadow: none;
+                  padding: 20px;
+                  max-width: 100%;
+              }
+              
+              .print-controls {
+                  display: none;
+              }
+              
+              h1 {
+                  font-size: 22px;
+              }
+              
+              h2 {
+                  font-size: 16px;
+              }
+              
+              .summary, .job-description, .job-achievements, .education-item, .skills-list {
+                  font-size: 11px;
+              }
+              
+              .section-title {
+                  font-size: 14px;
+              }
+              
+              .job, .education-item {
+                  page-break-inside: avoid;
+              }
+              
+              * {
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
+              }
+          }
+      </style>
+  </head>
+  <body>
+      <div class="print-controls">
+          <button onclick="window.print()">Print CV</button>
+          <button onclick="window.close()">Close</button>
+      </div>
+  
+      <div class="cv-container">
+          <div class="header">
+              <div class="name-title">
+                  <h1>${data.fullName || ''}</h1>
+                  <h2>${data.jobTitle || ''}</h2>
+                  <p class="summary">${data.summary || ''}</p>
+              </div>
+              <div class="contact-info">
+                  <div class="contact-info-label">Email</div>
+                  <div class="contact-info-value"><a href="mailto:${data.email || ''}">${data.email || ''}</a></div>
+          
+                  <div class="contact-info-label">LinkedIn</div>
+                  <div class="contact-info-value"><a href="${data.linkedin || ''}">${data.linkedin || ''}</a></div>
+          
+                  <div class="contact-info-label">Phone</div>
+                  <div class="contact-info-value">${data.phone || ''}</div>
+          
+                  <div class="contact-info-label">Location</div>
+                  <div class="contact-info-value">${data.location || ''}</div>
+              </div>
+          </div>
+          
+          <div class="content">
+              <div class="left-column">
+                  <h3 class="section-title">Work Experience</h3>
+                  ${data.experience ? data.experience.map(exp => `
+                      <div class="job">
+                          <div class="job-title">${exp.jobTitle || ''}</div>
+                          <div class="job-company-date">
+                              <span>${exp.company || ''}</span>
+                              <span>${exp.dates || ''}</span>
+                          </div>
+                          <div class="job-description">${exp.description || ''}</div>
+                          ${exp.achievements ? `
+                              <ul class="job-achievements">
+                                  ${exp.achievements.map(achievement => `
+                                      <li>${achievement}</li>
+                                  `).join('')}
+                              </ul>
+                          ` : ''}
+                      </div>
+                  `).join('') : ''}
+              </div>
+          
+              <div class="right-column">
+                  <h3 class="section-title">Education</h3>
+                  ${data.education ? data.education.map(edu => `
+                      <div class="education-item">
+                          <div class="education-title">${edu.degree || ''}</div>
+                          <div class="education-inst-date">
+                              <span>${edu.institution || ''}</span>
+                              <span>${edu.dates || ''}</span>
+                          </div>
+                      </div>
+                  `).join('') : ''}
+          
+                  <h3 class="section-title">Skills</h3>
+                  <div class="skills-list">
+                      ${data.skills ? data.skills.map(skill => `
+                          <p>${skill}</p>
+                      `).join('') : ''}
+                  </div>
+          
+                  ${data.certifications && data.certifications.length > 0 ? `
+                      <h3 class="section-title">Certifications</h3>
+                      <div class="skills-list">
+                          ${data.certifications.map(cert => `<p>${cert}</p>`).join('')}
+                      </div>
+                  ` : ''}
+              </div>
+          </div>
+      </div>
+  </body>
+  </html>`;
+      
+      // Create a data URL from the HTML content
+      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+      
+      // Open a new tab with the data URL (this is much simpler than using browser.storage)
+      browser.tabs.create({ url: dataUrl });
+      
     } catch (e) {
-      alert('Error parsing JSON. Please make sure you pasted the correct format from Claude.');
+      alert('Error parsing JSON. Please make sure you pasted the correct format from Claude: ' + e.message);
     }
   }
-  
-  // Update the preview.html page to use the stored HTML
-  // This goes in the preview/preview.html script section
-  /*
-  document.addEventListener('DOMContentLoaded', function() {
-    browser.storage.local.get('previewHTML').then(result => {
-      if (result.previewHTML) {
-        // Replace the entire document with the generated HTML
-        document.open();
-        document.write(result.previewHTML);
-        document.close();
-      } else {
-        document.body.innerHTML = '<p>No preview available. Please generate a CV first.</p>';
-      }
-    }).catch(error => {
-      console.error("Error loading preview:", error);
-      document.body.innerHTML = '<p>Error loading preview. Please try again.</p>';
-    });
-  });
-  */
 
   function generateCVPreview(jsonData) {
     // Load the modern template HTML

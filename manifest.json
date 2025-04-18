@@ -1,35 +1,47 @@
 {
-    "manifest_version": 2,
-    "name": "Job Hunter Assistant",
-    "version": "1.0",
-    "description": "Find and apply to jobs with ease using multiple search platforms and automated CV/cover letter generation",
-    "icons": {
-      "48": "icons/icon-48.png",
-      "96": "icons/icon-96.png"
+  "manifest_version": 2,
+  "name": "Job Hunter Assistant",
+  "version": "1.0",
+  "description": "Find and apply to jobs with ease using multiple search platforms and automated CV/cover letter generation",
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "contextMenus",
+    "clipboardWrite",
+    "activeTab",
+    "<all_urls>"
+  ],
+  
+  "sidebar_action": {
+    "default_icon": {
+      "19": "icons/icon-19.png",
+      "38": "icons/icon-38.png"
     },
-    "permissions": [
-      "tabs",
-      "storage",
-      "contextMenus",
-      "clipboardWrite",
-      "activeTab",
-      "<all_urls>"
-    ],
-    "browser_action": {
-      "default_icon": {
-        "19": "icons/icon-19.png",
-        "38": "icons/icon-38.png"
-      },
-      "default_title": "Job Hunter",
-      "default_popup": "popup/popup.html"
+    "default_title": "Job Hunter",
+    "default_panel": "panel/panel.html",
+    "open_at_install": false
+  },
+  
+  "browser_action": {
+    "default_icon": {
+      "19": "icons/icon-19.png",
+      "38": "icons/icon-38.png"
     },
-    "background": {
-      "scripts": ["background.js"]
-    },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content-scripts/job-scraper.js"]
-      }
-    ]
-  }
+    "default_title": "Open Job Hunter Panel"
+  },
+  
+  "background": {
+    "scripts": ["background.js"]
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-scripts/job-scraper.js"]
+    }
+  ]
+}

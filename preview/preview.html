@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CV & Cover Letter Preview</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    #preview-container {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview-container"></div>
+  
+  <script>
+    // Load preview HTML from storage
+    browser.storage.local.get('previewHTML').then(result => {
+      if (result.previewHTML) {
+        document.getElementById('preview-container').innerHTML = result.previewHTML;
+      } else {
+        document.getElementById('preview-container').innerHTML = '<p>No preview available. Please generate a CV first.</p>';
+      }
+    }).catch(error => {
+      console.error("Error loading preview:", error);
+      document.getElementById('preview-container').innerHTML = '<p>Error loading preview. Please try again.</p>';
+    });
+  </script>
+</body>
+</html>

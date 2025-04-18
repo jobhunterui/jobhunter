@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup CV preview button
     document.getElementById('preview-cv').addEventListener('click', previewCVAndCoverLetter);
+
+    console.log("Event listeners set up completed");
   });
   
   // Find Jobs Tab Functions
@@ -351,18 +353,25 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   // Previews only CV
   function previewCVAndCoverLetter() {
+    console.log("Preview button clicked!");
+  
     const jsonInput = document.getElementById('cv-json').value;
+    console.log("JSON input length:", jsonInput.length);
     
     if (!jsonInput.trim()) {
       alert('Please paste the JSON output from Claude first.');
+      console.log("JSON input is empty - alert shown");
       return;
     }
     
     try {
+      console.log("Attempting to parse JSON...");
       // Parse the JSON data
       const data = JSON.parse(jsonInput);
+      console.log("JSON parsed successfully:", data);
       
       // Create HTML content directly
+      console.log("Creating HTML content...");
       const htmlContent = `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -735,10 +744,19 @@ document.addEventListener('DOMContentLoaded', function() {
       // Create a data URL from the HTML content
       const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
       
+      console.log("Opening new tab with data URL...");
+      console.log("Data URL:", dataUrl);
+
       // Open a new tab with the data URL (this is much simpler than using browser.storage)
-      browser.tabs.create({ url: dataUrl });
+      browser.tabs.create({ url: dataUrl }).then(() => {
+        console.log("New tab created successfully");
+      }).catch(err => {
+        console.error("Error creating new tab:", err);
+        alert("Error opening preview tab: " + err.message);
+      });
       
     } catch (e) {
+      console.error("Error parsing JSON:", e);
       alert('Error parsing JSON. Please make sure you pasted the correct format from Claude: ' + e.message);
     }
   }

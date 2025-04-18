@@ -13,7 +13,8 @@
     "contextMenus",
     "clipboardWrite",
     "activeTab",
-    "<all_urls>"
+    "<all_urls>",
+    "downloads"
   ],
   
   "sidebar_action": {

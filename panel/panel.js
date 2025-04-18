@@ -354,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Previews only CV
   function previewCVAndCoverLetter() {
     console.log("Preview button clicked!");
-  
+    
     const jsonInput = document.getElementById('cv-json').value;
     console.log("JSON input length:", jsonInput.length);
     
@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const data = JSON.parse(jsonInput);
       console.log("JSON parsed successfully:", data);
       
-      // Create HTML content directly
+      // Create HTML content
       console.log("Creating HTML content...");
       const htmlContent = `<!DOCTYPE html>
   <html lang="en">
@@ -740,19 +740,32 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
   </body>
   </html>`;
+  
+      // Instead of using a data URL, we'll create a Blob and open it
+      console.log("Creating blob...");
+      const blob = new Blob([htmlContent], {type: 'text/html'});
+      const blobUrl = URL.createObjectURL(blob);
       
-      // Create a data URL from the HTML content
-      const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
-      
-      console.log("Opening new tab with data URL...");
-      console.log("Data URL:", dataUrl);
-
-      // Open a new tab with the data URL (this is much simpler than using browser.storage)
-      browser.tabs.create({ url: dataUrl }).then(() => {
+      console.log("Opening new tab with blob URL...");
+      // Open the blob URL in a new tab
+      browser.tabs.create({ url: blobUrl }).then(() => {
         console.log("New tab created successfully");
       }).catch(err => {
         console.error("Error creating new tab:", err);
         alert("Error opening preview tab: " + err.message);
+        
+        // Try alternative method if the first one fails
+        browser.tabs.create({ url: "about:blank" }).then(tab => {
+          browser.tabs.executeScript(tab.id, {
+            code: `document.documentElement.innerHTML = ${JSON.stringify(htmlContent)};`
+          }).catch(error => {
+            console.error("Error with executeScript:", error);
+            alert("Could not create preview: " + error.message);
+          });
+        }).catch(error => {
+          console.error("Error creating blank tab:", error);
+          alert("Could not create preview: " + error.message);
+        });
       });
       
     } catch (e) {

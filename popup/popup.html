@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+  <title>Job Hunter Assistant</title>
+</head>
+<body>
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-button active" data-tab="find">Find Jobs</button>
+      <button class="tab-button" data-tab="apply">Apply</button>
+      <button class="tab-button" data-tab="profile">Profile</button>
+    </div>
+    
+    <!-- Find Jobs Tab -->
+    <div id="find" class="tab-content active">
+      <h2>Find Jobs</h2>
+      <form id="job-search-form">
+        <div class="form-group">
+          <label for="role">Role:</label>
+          <input type="text" id="role" name="role" placeholder="e.g. Software Engineer">
+        </div>
+        
+        <div class="form-group">
+          <label for="location">Location:</label>
+          <input type="text" id="location" name="location" placeholder="e.g. London, UK">
+        </div>
+        
+        <div class="form-group">
+          <label for="experience">Experience Level:</label>
+          <select id="experience" name="experience">
+            <option value="">Any Level</option>
+            <option value="entry">Entry Level</option>
+            <option value="mid">Mid-Level</option>
+            <option value="senior">Senior</option>
+            <option value="lead">Lead/Manager</option>
+          </select>
+        </div>
+        
+        <div class="search-buttons">
+          <button type="button" id="search-linkedin">Find on LinkedIn</button>
+          <button type="button" id="search-linkedin-feed">Find on LinkedIn Feed</button>
+          <button type="button" id="search-google">Find on Google</button>
+          <button type="button" id="search-ai">Find with AI</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Apply Tab -->
+    <div id="apply" class="tab-content">
+      <h2>Saved Job Postings</h2>
+      <div class="info-text">Right-click on any job posting page and select "Save Job to Job Hunter" to add it here.</div>
+      
+      <div id="saved-jobs-list">
+        <!-- Jobs will be listed here dynamically -->
+        <div class="empty-state">No saved jobs yet.</div>
+      </div>
+      
+      <div id="job-actions" class="hidden">
+        <button id="generate-application">Generate Application</button>
+        <button id="remove-job">Remove</button>
+      </div>
+    </div>
+    
+    <!-- Profile Tab -->
+    <div id="profile" class="tab-content">
+      <h2>Your Profile</h2>
+      
+      <div class="form-group">
+        <label for="cv">Your CV/Resume:</label>
+        <textarea id="cv" name="cv" rows="10" placeholder="Paste your CV or resume text here..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="career-goals">Career Goals:</label>
+        <textarea id="career-goals" name="career-goals" rows="3" placeholder="Describe your career goals..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="template-style">CV/Cover Letter Template Style:</label>
+        <select id="template-style" name="template-style">
+          <option value="professional">Professional</option>
+          <option value="creative">Creative</option>
+          <option value="minimal">Minimal</option>
+          <option value="academic">Academic</option>
+        </select>
+      </div>
+      
+      <div class="json-input hidden">
+        <label for="cv-json">Tailored CV JSON:</label>
+        <textarea id="cv-json" name="cv-json" rows="5" placeholder="Paste the JSON from Claude here..."></textarea>
+        <button id="preview-cv">Preview CV & Cover Letter</button>
+      </div>
+      
+      <button id="save-profile">Save Profile</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

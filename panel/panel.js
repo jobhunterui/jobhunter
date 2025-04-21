@@ -95,8 +95,90 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup CV preview button
     document.getElementById('preview-cv').addEventListener('click', previewCVAndCoverLetter);
 
+    // Setup feature tracking for each button/action
+    document.getElementById('search-linkedin').addEventListener('click', function() {
+      const role = document.getElementById('role').value.trim();
+      logFeatureUsage('search', { platform: 'linkedin', search_term: role });
+    });
+
+    document.getElementById('search-linkedin-feed').addEventListener('click', function() {
+      const role = document.getElementById('role').value.trim();
+      logFeatureUsage('search', { platform: 'linkedin_feed', search_term: role });
+    });
+
+    document.getElementById('search-google').addEventListener('click', function() {
+      const role = document.getElementById('role').value.trim();
+      logFeatureUsage('search', { platform: 'job_boards', search_term: role });
+    });
+
+    document.getElementById('search-docs').addEventListener('click', function() {
+      const role = document.getElementById('role').value.trim();
+      logFeatureUsage('search', { platform: 'docs_and_pages', search_term: role });
+    });
+
+    document.getElementById('search-ai').addEventListener('click', function() {
+      const role = document.getElementById('role').value.trim();
+      logFeatureUsage('search', { platform: 'ai', search_term: role });
+    });
+
+    document.getElementById('refresh-jobs').addEventListener('click', function() {
+      logFeatureUsage('refresh_jobs');
+    });
+
+    document.getElementById('preview-cv').addEventListener('click', function() {
+      logFeatureUsage('preview_cv');
+    });
+
+    document.getElementById('save-profile').addEventListener('click', function() {
+      logFeatureUsage('save_profile');
+    });
+
+    // Track when tabs are clicked
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', function() {
+        const tabId = button.getAttribute('data-tab');
+        logFeatureUsage('view_tab', { tab_name: tabId });
+      });
+    });
+
+    // Add a data export button to your profile tab
+    const profileTab = document.getElementById('profile');
+    if (profileTab) {
+      const exportButton = document.createElement('button');
+      exportButton.id = 'export-data';
+      exportButton.textContent = 'Export Data for ML';
+      exportButton.className = 'export-button';
+      exportButton.style.marginTop = '20px';
+      exportButton.style.backgroundColor = '#9b59b6';
+      exportButton.addEventListener('click', exportMLDataset);
+      
+      profileTab.appendChild(exportButton);
+    }
+
+    // Track extension open
+    logFeatureUsage('extension_open');
+
+    // Retry failed requests
+    setTimeout(retryFailedRequests, 5000);
+    
+    // Set up periodic retry
+    setInterval(retryFailedRequests, 60000 * 30); // Retry every 30 minutes
+
     console.log("Event listeners set up completed");
   });
+
+  // Store the last searched job for tracking
+  function storeLastSearch(platform, role, location, experience) {
+    browser.storage.local.set({
+      lastSearch: {
+        platform: platform,
+        role: role,
+        location: location,
+        experience: experience,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
 
   // Hiring Phrases Management Functions
   function loadHiringPhrases() {
@@ -159,6 +241,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const role = encodeURIComponent(document.getElementById('role').value);
     const location = encodeURIComponent(document.getElementById('location').value);
     const experience = document.getElementById('experience').value;
+
+    // Store search context for tracking
+    storeLastSearch('linkedin', role, location, experience);
     
     let url = `https://www.linkedin.com/jobs/search/?keywords=${role}&location=${location}`;
     
@@ -181,6 +266,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
     const selectedPhrases = getSelectedHiringPhrases();
+    const experience = document.getElementById('experience').value;
+
+    // Store search context for tracking
+    storeLastSearch('linkedinFeed', role, location, experience);
     
     if (!selectedPhrases) return;
     
@@ -202,6 +291,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function searchOnGoogle() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
+    const experience = document.getElementById('experience').value;
+
+    // Store search context for tracking
+    storeLastSearch('jobBoard', role, location, experience);
     
     // List of specific ATS sites as requested
     const atsSites = [
@@ -227,6 +320,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
     const selectedPhrases = getSelectedHiringPhrases();
+    const experience = document.getElementById('experience').value;
+
+    // Store search context for tracking
+    storeLastSearch('docsAndPages', role, location, experience);
     
     if (!role) {
       alert('Please enter a job role to search for.');
@@ -264,6 +361,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
     const experience = document.getElementById('experience').value;
+
+    // Store search context for tracking
+    storeLastSearch('AI', role, location, experience);
     
     if (!role) {
       alert('Please enter a job role to search for.');
@@ -379,6 +479,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Function to show job details
   function showJobDetails(job) {
+    // Log this viewing
+    logFeatureUsage('view_job_details', { 
+      job_title: job.title,
+      company: job.company
+    });
+    
+    // Check if this resulted from a search
+    browser.storage.local.get('lastSearch').then(result => {
+      const lastSearch = result.lastSearch;
+      
+      // If there was a recent search, log this as a search-to-selection
+      if (lastSearch && lastSearch.timestamp) {
+        // Check if the selection happened within 30 minutes of the search
+        const searchTime = new Date(lastSearch.timestamp).getTime();
+        const now = Date.now();
+        const thirtyMinutesMs = 30 * 60 * 1000;
+        
+        if (now - searchTime < thirtyMinutesMs) {
+          // Log this as a search result selection
+          logSearchToSelection(lastSearch, job);
+        }
+      }
+    });
+    
     // Create modal element
     const modal = document.createElement('div');
     modal.className = 'job-details-modal';
@@ -555,6 +679,12 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
         
+        // Log application generation for ML
+        logApplicationGeneration(job, cv);
+        
+        // Store the job for later matching with Claude's response
+        browser.storage.local.set({ lastGeneratedJob: job });
+        
         // Create prompt for Claude
         const prompt = createClaudePrompt(job, cv);
         
@@ -577,67 +707,75 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function createClaudePrompt(job, cv) {
     return `I need help creating:
-  1. A tailored CV in JSON format to use with my template 
-  2. A cover letter I can use directly
-  
-  JOB DETAILS:
-  Title: ${job.title}
-  Company: ${job.company}
-  Location: ${job.location || 'Not specified'}
-  Description: ${job.description || 'Not provided'}
-  
-  MY CURRENT CV:
-  ${cv}
-  
-  First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging.
-  
-  Then, please provide my CV information in this exact JSON format that I'll copy back to my extension:
-  
-  \`\`\`json
-  {
-    "fullName": "Your full name from my CV",
-    "jobTitle": "A title that matches the job I'm applying for",
-    "summary": "A concise professional summary tailored to this role",
-    "email": "My email from CV",
-    "linkedin": "My LinkedIn URL from CV (or create one based on my name)",
-    "phone": "My phone number from CV",
-    "location": "My location from CV",
+    1. A tailored CV in JSON format to use with my template 
+    2. A cover letter I can use directly
     
-    "experience": [
-      {
-        "jobTitle": "Position title",
-        "company": "Company name",
-        "dates": "Start date - End date (or Present)",
-        "description": "Brief description of role focused on relevant responsibilities",
-        "achievements": [
-          "Achievement 1 with quantifiable results",
-          "Achievement 2 with quantifiable results",
-          "Achievement 3 with quantifiable results"
-        ]
+    JOB DETAILS:
+    Title: ${job.title}
+    Company: ${job.company}
+    Location: ${job.location || 'Not specified'}
+    Description: ${job.description || 'Not provided'}
+    
+    MY CURRENT CV:
+    ${cv}
+    
+    First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging.
+    
+    Then, please provide my CV information in this exact JSON format that I'll copy back to my extension. It's critical that the JSON is well-formed and follows this exact structure:
+    
+    \`\`\`json
+    {
+      "fullName": "Your full name from my CV",
+      "jobTitle": "A title that matches the job I'm applying for",
+      "summary": "A concise professional summary tailored to this role",
+      "email": "My email from CV",
+      "linkedin": "My LinkedIn URL from CV (or create one based on my name)",
+      "phone": "My phone number from CV",
+      "location": "My location from CV",
+      
+      "experience": [
+        {
+          "jobTitle": "Position title",
+          "company": "Company name",
+          "dates": "Start date - End date (or Present)",
+          "description": "Brief description of role focused on relevant responsibilities",
+          "achievements": [
+            "Achievement 1 with quantifiable results",
+            "Achievement 2 with quantifiable results",
+            "Achievement 3 with quantifiable results"
+          ],
+          "relevanceScore": 95
+        }
+      ],
+      
+      "education": [
+        {
+          "degree": "Degree name",
+          "institution": "Institution name",
+          "dates": "Start year - End year",
+          "relevanceScore": 80
+        }
+      ],
+      
+      "skills": [
+        "Technical: JavaScript, React, Node.js, Python, etc.",
+        "Soft Skills: Communication, Leadership, Problem-solving, etc."
+      ],
+      
+      "certifications": [
+        "Certification 1 with year if available",
+        "Certification 2 with year if available"
+      ],
+      
+      "skillGapAnalysis": {
+        "matchingSkills": ["List skills from my CV that match this job"],
+        "missingSkills": ["Important skills mentioned in job that I don't have"],
+        "overallMatch": 85
       }
-    ],
+    }
+    \`\`\`
     
-    "education": [
-      {
-        "degree": "Degree name",
-        "institution": "Institution name",
-        "dates": "Start year - End year"
-      }
-    ],
-    
-    "skills": [
-      "Skill category 1: Specific skills listed comma-separated",
-      "Skill category 2: Specific skills listed comma-separated"
-    ],
-    
-    "certifications": [
-      "Certification 1 with year if available",
-      "Certification 2 with year if available"
-    ]
-  }
-  \`\`\`
-  
-  Make sure the JSON follows this exact structure as my extension will parse it automatically. Prioritize skills and experience that are most relevant to the job description.`;
+    Make sure the JSON follows this exact structure as my extension will parse it automatically. Prioritize skills and experience that are most relevant to the job description. For each experience and education item, add a relevanceScore from 0-100 indicating how relevant it is to this specific job. Also include the skillGapAnalysis section to help me understand my fit for the role.`;
   }
   
   // Profile Tab Functions
@@ -680,6 +818,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Parse the JSON data
       const data = JSON.parse(jsonInput);
       console.log("JSON parsed successfully:", data);
+      
+      // Extract data for ML models from Claude's response
+      extractDataFromClaudeResponse(jsonInput);
       
       // Create HTML content
       console.log("Creating HTML content...");
@@ -1853,4 +1994,285 @@ document.addEventListener('DOMContentLoaded', function() {
     </body>
     </html>
   `;
+}
+
+// ============== DATA COLLECTION FUNCTIONS ===============
+
+// Create a unique anonymous user ID if it doesn't exist
+async function getOrCreateUserId() {
+  try {
+    const result = await browser.storage.local.get('userId');
+    let userId = result.userId;
+    
+    if (!userId) {
+      userId = 'user_' + Math.random().toString(36).substring(2, 15);
+      await browser.storage.local.set({ userId });
+    }
+    
+    return userId;
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+    return 'temp_' + Math.random().toString(36).substring(2, 15);
+  }
+}
+
+// Function to send data to Google Sheets via Google Apps Script
+function sendToGoogleSheets(data) {
+  // Replace with your Google Apps Script Web App URL
+  const url = 'https://script.google.com/macros/s/AKfycbyJSZQKHvaubK4UaXgQuMEBbH1eXFYedlKz6kwsKaLUuEY3xmx2xcJ82MmWXTU26VAD/exec';
+  
+  // Send data
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors', // This is important to avoid CORS issues
+    cache: 'no-cache',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  .then(() => {
+    console.log('Data sent successfully');
+    // We can't actually check success because of no-cors mode
+  })
+  .catch(error => {
+    console.error('Error sending data to sheets:', error);
+    // Store failed requests for retry later
+    storeFailedRequest(data);
+  });
+}
+
+// Store failed requests to retry later
+function storeFailedRequest(data) {
+  browser.storage.local.get('failedRequests').then(result => {
+    const failedRequests = result.failedRequests || [];
+    failedRequests.push({
+      data: data,
+      timestamp: new Date().toISOString()
+    });
+    // Limit to prevent storage issues
+    if (failedRequests.length > 50) {
+      failedRequests.shift(); // Remove oldest
+    }
+    browser.storage.local.set({ failedRequests });
+  });
+}
+
+// Function to log feature usage
+async function logFeatureUsage(featureName, additionalData = {}) {
+  try {
+    const userId = await getOrCreateUserId();
+    
+    // Create data object for tracking feature usage
+    const data = {
+      type: 'feature_usage',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      feature: featureName,
+      ...additionalData
+    };
+    
+    // Send to Google Sheets
+    sendToGoogleSheets(data);
+    
+  } catch (error) {
+    console.error("Error logging feature usage:", error);
+  }
+}
+
+// Track search to selection behavior
+async function logSearchToSelection(searchData, selectedJob) {
+  try {
+    const userId = await getOrCreateUserId();
+    
+    // Create data object to send to Google Sheets
+    const data = {
+      type: 'search_to_selection',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      search_platform: searchData.platform,
+      search_term: searchData.role,
+      search_location: searchData.location,
+      selected_job_title: selectedJob.title,
+      selected_job_company: selectedJob.company,
+      time_to_selection: searchData.timestamp ? 
+        Math.round((Date.now() - new Date(searchData.timestamp).getTime()) / 1000) + ' seconds' : 'unknown'
+    };
+    
+    // Send to Google Sheets
+    sendToGoogleSheets(data);
+    
+  } catch (error) {
+    console.error("Error logging search selection:", error);
+  }
+}
+
+// Track when a user generates an application (CV-Job matching)
+async function logApplicationGeneration(job, cv) {
+  try {
+    const userId = await getOrCreateUserId();
+    
+    // Will extract skills using Claude's response instead of our own extraction
+    // Just send basic data for now
+    const data = {
+      type: 'application_generated',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      job_title: job.title || '',
+      company: job.company || '',
+      has_cv: cv ? 'yes' : 'no'
+    };
+    
+    // Send to Google Sheets
+    sendToGoogleSheets(data);
+    
+  } catch (error) {
+    console.error("Error logging application data:", error);
+  }
+}
+
+// Extract CV and job data from Claude's JSON response
+function extractDataFromClaudeResponse(jsonData) {
+  try {
+    // Parse the JSON data from Claude
+    const data = JSON.parse(jsonData);
+    
+    // Get stored job and CV data to associate with this response
+    browser.storage.local.get(['lastGeneratedJob', 'profileData']).then(result => {
+      const job = result.lastGeneratedJob || {};
+      const cv = result.profileData?.cv || '';
+      
+      // Extract skills from Claude's JSON
+      const cvSkills = [];
+      if (data.skills && Array.isArray(data.skills)) {
+        // Extract all skills that Claude identified
+        data.skills.forEach(skillSet => {
+          const skills = skillSet.split(':');
+          if (skills.length > 1) {
+            // Get the skills after the category
+            const skillList = skills[1].split(',').map(s => s.trim());
+            cvSkills.push(...skillList);
+          } else {
+            cvSkills.push(skillSet);
+          }
+        });
+      }
+      
+      // Store the enriched data for ML datasets
+      logJobCVMatchData(job, cv, cvSkills, data);
+    });
+    
+  } catch (error) {
+    console.error("Error extracting data from Claude response:", error);
+  }
+}
+
+// Log enriched job-CV match data from Claude's analysis
+async function logJobCVMatchData(job, cv, cvSkills, claudeData) {
+  try {
+    const userId = await getOrCreateUserId();
+    
+    // Create data object for ML dataset
+    const data = {
+      type: 'cv_job_match',
+      timestamp: new Date().toISOString(),
+      user_id: userId,
+      job_title: job.title || '',
+      company: job.company || '',
+      job_location: job.location || '',
+      // CV and job skills as identified by Claude
+      cv_skills: cvSkills.join(', '),
+      // Claude's chosen job title for the user based on their CV
+      matched_job_title: claudeData.jobTitle || '',
+      // Summary that Claude created - shows what Claude thought was relevant
+      tailored_summary: claudeData.summary || '',
+      // Education details that Claude thought were relevant to highlight
+      education: Array.isArray(claudeData.education) ?
+        claudeData.education.map(e => `${e.degree}: ${e.institution}`).join('; ') : '',
+      // Experience that Claude highlighted as most relevant for this job
+      highlighted_experience: Array.isArray(claudeData.experience) ?
+        claudeData.experience.map(e => e.jobTitle).join('; ') : ''
+    };
+    
+    // Send to Google Sheets
+    sendToGoogleSheets(data);
+    
+  } catch (error) {
+    console.error("Error logging job-CV match data:", error);
+  }
+}
+
+// Add an export function to download collected ML data
+function exportMLDataset() {
+  browser.storage.local.get(['lastGeneratedJob', 'profileData', 'savedJobs']).then(result => {
+    // Compile all available data into a dataset
+    const dataset = {
+      savedJobs: result.savedJobs || [],
+      userCV: result.profileData?.cv || '',
+      timestamp: new Date().toISOString()
+    };
+    
+    // Convert to JSON
+    const jsonData = JSON.stringify(dataset, null, 2);
+    
+    // Create download link
+    const blob = new Blob([jsonData], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    
+    // Create and trigger download
+    browser.downloads.download({
+      url: url,
+      filename: 'job_hunter_ml_dataset.json',
+      saveAs: true
+    });
+    
+    // Log the export
+    logFeatureUsage('export_data');
+  });
+}
+
+// Retry failed requests
+function retryFailedRequests() {
+  browser.storage.local.get('failedRequests').then(result => {
+    const failedRequests = result.failedRequests || [];
+    
+    if (failedRequests.length === 0) return;
+    
+    console.log(`Attempting to retry ${failedRequests.length} failed requests`);
+    
+    // Clone the array so we can modify the original
+    const requestsToRetry = [...failedRequests];
+    
+    // Clear the original array
+    browser.storage.local.set({ failedRequests: [] });
+    
+    // Try to send each request again
+    let successCount = 0;
+    
+    requestsToRetry.forEach(request => {
+      // Send to Google Sheets again
+      fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request.data),
+      })
+      .then(() => {
+        successCount++;
+      })
+      .catch(error => {
+        console.error('Failed to retry request:', error);
+        // Add back to failed requests
+        storeFailedRequest(request.data);
+      });
+    });
+    
+    // Log retry stats
+    setTimeout(() => {
+      console.log(`Retry complete: ${successCount}/${requestsToRetry.length} requests succeeded`);
+    }, 2000);
+  });
 }

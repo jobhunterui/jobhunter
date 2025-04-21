@@ -141,20 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
 
-    // Add a data export button to your profile tab
-    const profileTab = document.getElementById('profile');
-    if (profileTab) {
-      const exportButton = document.createElement('button');
-      exportButton.id = 'export-data';
-      exportButton.textContent = 'Export Data for ML';
-      exportButton.className = 'export-button';
-      exportButton.style.marginTop = '20px';
-      exportButton.style.backgroundColor = '#9b59b6';
-      exportButton.addEventListener('click', exportMLDataset);
-      
-      profileTab.appendChild(exportButton);
-    }
-
     // Track extension open
     logFeatureUsage('extension_open');
 
@@ -2200,35 +2186,6 @@ async function logJobCVMatchData(job, cv, cvSkills, claudeData) {
   } catch (error) {
     console.error("Error logging job-CV match data:", error);
   }
-}
-
-// Add an export function to download collected ML data
-function exportMLDataset() {
-  browser.storage.local.get(['lastGeneratedJob', 'profileData', 'savedJobs']).then(result => {
-    // Compile all available data into a dataset
-    const dataset = {
-      savedJobs: result.savedJobs || [],
-      userCV: result.profileData?.cv || '',
-      timestamp: new Date().toISOString()
-    };
-    
-    // Convert to JSON
-    const jsonData = JSON.stringify(dataset, null, 2);
-    
-    // Create download link
-    const blob = new Blob([jsonData], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    
-    // Create and trigger download
-    browser.downloads.download({
-      url: url,
-      filename: 'job_hunter_ml_dataset.json',
-      saveAs: true
-    });
-    
-    // Log the export
-    logFeatureUsage('export_data');
-  });
 }
 
 // Retry failed requests

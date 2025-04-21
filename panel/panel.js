@@ -26,12 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('search-linkedin').addEventListener('click', searchOnLinkedIn);
     document.getElementById('search-linkedin-feed').addEventListener('click', searchOnLinkedInFeed);
     document.getElementById('search-google').addEventListener('click', searchOnGoogle);
+    document.getElementById('search-docs').addEventListener('click', searchInDocsAndPages);
     document.getElementById('search-ai').addEventListener('click', searchWithAI);
 
-    // Setup LinkedIn phrases features
-    document.getElementById('show-linkedin-phrases').addEventListener('click', function() {
-      const optionsEl = document.getElementById('linkedin-phrases-options');
-      const toggleEl = document.getElementById('show-linkedin-phrases');
+    // Setup hiring phrases features
+    document.getElementById('show-hiring-phrases').addEventListener('click', function() {
+      const optionsEl = document.getElementById('hiring-phrases-options');
+      const toggleEl = document.getElementById('show-hiring-phrases');
       
       if (optionsEl.classList.contains('hidden')) {
         optionsEl.classList.remove('hidden');
@@ -54,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const id = 'phrase-custom-' + Date.now();
         
         phraseOption.innerHTML = `
-          <input type="checkbox" id="${id}" name="linkedin-phrase" value="${phrase}" checked>
+          <input type="checkbox" id="${id}" name="hiring-phrase" value="${phrase}" checked>
           <label for="${id}">"${phrase}"</label>
         `;
         
@@ -66,12 +67,12 @@ document.addEventListener('DOMContentLoaded', function() {
         customPhraseInput.value = '';
         
         // Save custom phrases to storage
-        saveLinkedInPhrases();
+        saveHiringPhrases();
       }
     });
 
-    // Load LinkedIn phrases
-    loadLinkedInPhrases();
+    // Load hiring phrases
+    loadHiringPhrases();
     
     // Setup profile save button
     document.getElementById('save-profile').addEventListener('click', saveProfileData);
@@ -97,15 +98,15 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Event listeners set up completed");
   });
 
-  // LinkedIn Phrases Management Functions
-  function loadLinkedInPhrases() {
-    browser.storage.local.get('linkedinPhrases').then(result => {
-      if (result.linkedinPhrases && Array.isArray(result.linkedinPhrases)) {
+  // Hiring Phrases Management Functions
+  function loadHiringPhrases() {
+    browser.storage.local.get('hiringPhrases').then(result => {
+      if (result.hiringPhrases && Array.isArray(result.hiringPhrases)) {
         const customPhraseDiv = document.querySelector('.custom-phrase');
         
-        result.linkedinPhrases.forEach(phrase => {
+        result.hiringPhrases.forEach(phrase => {
           // Check if this phrase already exists
-          const exists = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]'))
+          const exists = Array.from(document.querySelectorAll('input[name="hiring-phrase"]'))
             .some(input => input.value === phrase);
           
           if (!exists) {
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = 'phrase-custom-' + Date.now() + Math.random().toString(36).substr(2, 5);
             
             phraseOption.innerHTML = `
-              <input type="checkbox" id="${id}" name="linkedin-phrase" value="${phrase}" checked>
+              <input type="checkbox" id="${id}" name="hiring-phrase" value="${phrase}" checked>
               <label for="${id}">"${phrase}"</label>
             `;
             
@@ -126,13 +127,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function saveLinkedInPhrases() {
-    const customPhrases = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]'))
-      .filter(input => !['we are hiring', 'join our team', 'job opening', 'open position', 
-                        'now hiring', 'looking for', 'immediate opening'].includes(input.value))
+  function saveHiringPhrases() {
+    const defaultPhrases = [
+      'we are hiring', 'join our team', 'job opening', 'open position', 
+      'now hiring', 'looking for', 'immediate opening', 'career opportunities',
+      'remote opportunity'
+    ];
+    
+    const customPhrases = Array.from(document.querySelectorAll('input[name="hiring-phrase"]'))
+      .filter(input => !defaultPhrases.includes(input.value))
       .map(input => input.value);
     
-    browser.storage.local.set({ linkedinPhrases: customPhrases });
+    browser.storage.local.set({ hiringPhrases: customPhrases });
+  }
+
+  // Common functions for getting selected hiring phrases
+  function getSelectedHiringPhrases() {
+    const selectedPhrases = Array.from(document.querySelectorAll('input[name="hiring-phrase"]:checked'))
+      .map(input => input.value);
+    
+    if (selectedPhrases.length === 0) {
+      alert('Please select at least one hiring phrase.');
+      return null;
+    }
+    
+    return selectedPhrases;
   }
   
   // Find Jobs Tab Functions
@@ -161,15 +180,9 @@ document.addEventListener('DOMContentLoaded', function() {
   function searchOnLinkedInFeed() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
+    const selectedPhrases = getSelectedHiringPhrases();
     
-    // Get selected phrases
-    const selectedPhrases = Array.from(document.querySelectorAll('input[name="linkedin-phrase"]:checked'))
-      .map(input => input.value);
-    
-    if (selectedPhrases.length === 0) {
-      alert('Please select at least one search phrase for LinkedIn feed search.');
-      return;
-    }
+    if (!selectedPhrases) return;
     
     // Select a random phrase from selected options
     const randomPhrase = selectedPhrases[Math.floor(Math.random() * selectedPhrases.length)];
@@ -182,9 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
       searchParams.append('geo', location);
     }
     
-    // Using LinkedIn's search URL for content (posts)
     const url = `https://www.linkedin.com/search/results/content/?${searchParams.toString()}`;
-    
     browser.tabs.create({ url });
   }
   
@@ -209,6 +220,43 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     
+    browser.tabs.create({ url });
+  }
+
+  function searchInDocsAndPages() {
+    const role = document.getElementById('role').value.trim();
+    const location = document.getElementById('location').value.trim();
+    const selectedPhrases = getSelectedHiringPhrases();
+    
+    if (!role) {
+      alert('Please enter a job role to search for.');
+      return;
+    }
+    
+    if (!selectedPhrases) return;
+    
+    // Simplified document sites list
+    const documentSites = [
+      'docs.google.com',
+      'notion.so',
+      'coda.io'
+    ];
+    
+    // Construct the site search query
+    const siteQuery = documentSites.map(site => `site:${site}`).join(' OR ');
+    
+    // Select a random phrase or use all selected phrases
+    const randomPhrase = selectedPhrases[Math.floor(Math.random() * selectedPhrases.length)];
+    
+    // Build the simple search query: platforms + hiring phrase + role
+    let query = `(${siteQuery}) AND ("${randomPhrase}") AND "${role}"`;
+    
+    // Add location if provided
+    if (location) {
+      query += ` AND "${location}"`;
+    }
+    
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     browser.tabs.create({ url });
   }
   
@@ -928,7 +976,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <button onclick="window.print()">Print CV</button>
           <button onclick="window.close()">Close</button>
       </div>
-  
+
       <div class="cv-container">
           <div class="header">
               <div class="name-title">
@@ -1003,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
   </body>
   </html>`;
-  
+
       // Instead of using a data URL, we'll create a Blob and open it
       console.log("Creating blob...");
       const blob = new Blob([htmlContent], {type: 'text/html'});

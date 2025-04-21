@@ -37,44 +37,53 @@
             <option value="lead">Lead/Manager</option>
           </select>
         </div>
-
-        <div class="form-group linkedin-phrases-section">
-          <label for="linkedin-phrases">LinkedIn Feed Search Phrases:</label>
-          <div class="linkedin-phrases-toggle" id="show-linkedin-phrases">
+    
+        <!-- Moved from LinkedIn specific to global -->
+        <div class="form-group hiring-phrases-section">
+          <label for="hiring-phrases">Hiring Phrases to Search:</label>
+          <div class="hiring-phrases-toggle" id="show-hiring-phrases">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
-            <span>Show search phrases</span>
+            <span>Show hiring phrases</span>
           </div>
           
-          <div class="linkedin-phrases-options hidden" id="linkedin-phrases-options">
+          <div class="hiring-phrases-options hidden" id="hiring-phrases-options">
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-hiring" name="linkedin-phrase" value="we are hiring" checked>
+              <input type="checkbox" id="phrase-hiring" name="hiring-phrase" value="we are hiring" checked>
               <label for="phrase-hiring">"we are hiring"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-team" name="linkedin-phrase" value="join our team" checked>
+              <input type="checkbox" id="phrase-team" name="hiring-phrase" value="join our team" checked>
               <label for="phrase-team">"join our team"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-opening" name="linkedin-phrase" value="job opening" checked>
+              <input type="checkbox" id="phrase-opening" name="hiring-phrase" value="job opening" checked>
               <label for="phrase-opening">"job opening"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-position" name="linkedin-phrase" value="open position" checked>
+              <input type="checkbox" id="phrase-position" name="hiring-phrase" value="open position" checked>
               <label for="phrase-position">"open position"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-now-hiring" name="linkedin-phrase" value="now hiring" checked>
+              <input type="checkbox" id="phrase-now-hiring" name="hiring-phrase" value="now hiring" checked>
               <label for="phrase-now-hiring">"now hiring"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-looking" name="linkedin-phrase" value="looking for" checked>
+              <input type="checkbox" id="phrase-looking" name="hiring-phrase" value="looking for" checked>
               <label for="phrase-looking">"looking for"</label>
             </div>
             <div class="phrase-option">
-              <input type="checkbox" id="phrase-immediate" name="linkedin-phrase" value="immediate opening" checked>
+              <input type="checkbox" id="phrase-immediate" name="hiring-phrase" value="immediate opening" checked>
               <label for="phrase-immediate">"immediate opening"</label>
+            </div>
+            <div class="phrase-option">
+              <input type="checkbox" id="phrase-opportunities" name="hiring-phrase" value="career opportunities" checked>
+              <label for="phrase-opportunities">"career opportunities"</label>
+            </div>
+            <div class="phrase-option">
+              <input type="checkbox" id="phrase-remote" name="hiring-phrase" value="remote opportunity" checked>
+              <label for="phrase-remote">"remote opportunity"</label>
             </div>
             <div class="phrase-option custom-phrase">
               <input type="text" id="custom-phrase" placeholder="Add your own phrase">
@@ -86,7 +95,8 @@
         <div class="search-buttons">
           <button type="button" id="search-linkedin">Find on LinkedIn</button>
           <button type="button" id="search-linkedin-feed">Find on LinkedIn Feed</button>
-          <button type="button" id="search-google">Find on Google</button>
+          <button type="button" id="search-google">Find on Job Boards</button>
+          <button type="button" id="search-docs">Find in Docs and Pages</button>
           <button type="button" id="search-ai">Find with AI</button>
         </div>
       </form>

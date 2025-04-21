@@ -109,6 +109,13 @@ button:hover {
   background-color: #2980b9;
 }
 
+.search-buttons button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #search-ai {
   grid-column: span 2;
   background-color: #9b59b6;
@@ -402,7 +409,7 @@ button:hover {
   background: #555;
 }
 
-.linkedin-phrases-toggle {
+.hiring-phrases-toggle {
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -411,16 +418,16 @@ button:hover {
   margin-bottom: 8px;
 }
 
-.linkedin-phrases-toggle svg {
+.hiring-phrases-toggle svg {
   margin-right: 5px;
   transition: transform 0.3s ease;
 }
 
-.linkedin-phrases-toggle.active svg {
+.hiring-phrases-toggle.active svg {
   transform: rotate(180deg);
 }
 
-.linkedin-phrases-options {
+.hiring-phrases-options {
   background-color: #f9f9f9;
   border: 1px solid #eee;
   border-radius: 4px;

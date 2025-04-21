@@ -2002,30 +2002,82 @@ async function getOrCreateUserId() {
   }
 }
 
+// Code to queue and send data to Google Sheets via Google Apps Script
+let eventQueue = [];
+let processingQueue = false;
+
 // Function to send data to Google Sheets via Google Apps Script
 function sendToGoogleSheets(data) {
-  // Replace with your Google Apps Script Web App URL
-  const url = 'https://script.google.com/macros/s/AKfycbyJSZQKHvaubK4UaXgQuMEBbH1eXFYedlKz6kwsKaLUuEY3xmx2xcJ82MmWXTU26VAD/exec';
+  // Add to queue instead of sending immediately
+  eventQueue.push(data);
   
-  // Send data
-  fetch(url, {
-    method: 'POST',
-    mode: 'no-cors', // This is important to avoid CORS issues
-    cache: 'no-cache',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
-  .then(() => {
-    console.log('Data sent successfully');
-    // We can't actually check success because of no-cors mode
-  })
-  .catch(error => {
-    console.error('Error sending data to sheets:', error);
-    // Store failed requests for retry later
-    storeFailedRequest(data);
+  // Start queue processing if not already running
+  if (!processingQueue) {
+    processQueue();
+  }
+}
+
+// Process the queue with throttling
+async function processQueue() {
+  processingQueue = true;
+  
+  while (eventQueue.length > 0) {
+    // Get the next item
+    const data = eventQueue.shift();
+    
+    try {
+      // Try to send it
+      await sendDataToSheet(data);
+      
+      // Small delay between requests to avoid hitting concurrent limits
+      await sleep(300 + Math.random() * 700); // Random delay between 300-1000ms
+    } catch (error) {
+      console.error('Error sending data:', error);
+      // Put back in queue if it's a temporary error
+      if (isTemporaryError(error)) {
+        eventQueue.unshift(data);
+        // Wait longer before retrying
+        await sleep(2000);
+      } else {
+        // Store permanently failed requests
+        storeFailedRequest(data);
+      }
+    }
+  }
+  
+  processingQueue = false;
+}
+
+// Helper function for sleeping
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Actually send the data
+async function sendDataToSheet(data) {
+  return new Promise((resolve, reject) => {
+    const url = 'https://script.google.com/macros/s/AKfycbyJSZQKHvaubK4UaXgQuMEBbH1eXFYedlKz6kwsKaLUuEY3xmx2xcJ82MmWXTU26VAD/exec';
+    
+    fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      cache: 'no-cache',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+    .then(() => resolve())
+    .catch(error => reject(error));
   });
+}
+
+// Check if error is likely temporary
+function isTemporaryError(error) {
+  // Network errors are usually temporary
+  return error instanceof TypeError || 
+         error.message.includes('network') ||
+         error.message.includes('timeout');
 }
 
 // Store failed requests to retry later

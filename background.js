@@ -30,6 +30,24 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
   }
 });
 
+// Track job saved event
+function trackJobSaved(job) {
+  browser.runtime.sendMessage({
+    action: "trackJobSaved",
+    jobData: {
+      job_title: job.title || 'Unknown Title',
+      company: job.company || 'Unknown Company',
+      location: job.location || '',
+      url: job.url || '',
+      source_domain: job.url ? new URL(job.url).hostname : '',
+      skills: Array.isArray(job.skills) ? job.skills.join(', ') : '',
+      experience_level: job.experienceLevel || '',
+      description_snippet: job.description ? 
+        job.description.substring(0, 200) + (job.description.length > 200 ? '...' : '') : ''
+    }
+  });
+}
+
 // Function to save job data
 function saveJobData(jobData, url) {
   // Get existing saved jobs
@@ -48,6 +66,9 @@ function saveJobData(jobData, url) {
       
       // Save updated jobs
       browser.storage.local.set({ savedJobs }).then(() => {
+        // Track this job save
+        trackJobSaved(jobData);
+        
         // Show notification
         browser.notifications.create({
           type: "basic",

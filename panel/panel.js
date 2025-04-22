@@ -98,73 +98,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup feature tracking for each button/action
     document.getElementById('search-linkedin').addEventListener('click', function() {
       const role = document.getElementById('role').value.trim();
-      logFeatureUsage('search', { platform: 'linkedin', search_term: role });
+      trackFeatureUsage('search', { platform: 'linkedin', search_term: role });
     });
 
     document.getElementById('search-linkedin-feed').addEventListener('click', function() {
       const role = document.getElementById('role').value.trim();
-      logFeatureUsage('search', { platform: 'linkedin_feed', search_term: role });
+      trackFeatureUsage('search', { platform: 'linkedin_feed', search_term: role });
     });
 
     document.getElementById('search-google').addEventListener('click', function() {
       const role = document.getElementById('role').value.trim();
-      logFeatureUsage('search', { platform: 'job_boards', search_term: role });
+      trackFeatureUsage('search', { platform: 'job_boards', search_term: role });
     });
 
     document.getElementById('search-docs').addEventListener('click', function() {
       const role = document.getElementById('role').value.trim();
-      logFeatureUsage('search', { platform: 'docs_and_pages', search_term: role });
+      trackFeatureUsage('search', { platform: 'docs_and_pages', search_term: role });
     });
 
     document.getElementById('search-ai').addEventListener('click', function() {
       const role = document.getElementById('role').value.trim();
-      logFeatureUsage('search', { platform: 'ai', search_term: role });
+      trackFeatureUsage('search', { platform: 'ai', search_term: role });
     });
 
     document.getElementById('refresh-jobs').addEventListener('click', function() {
-      logFeatureUsage('refresh_jobs');
+      trackFeatureUsage('refresh_jobs');
     });
 
     document.getElementById('preview-cv').addEventListener('click', function() {
-      logFeatureUsage('preview_cv');
+      trackFeatureUsage('preview_cv');
     });
 
     document.getElementById('save-profile').addEventListener('click', function() {
-      logFeatureUsage('save_profile');
+      trackFeatureUsage('save_profile');
     });
 
     // Track when tabs are clicked
     document.querySelectorAll('.tab-button').forEach(button => {
       button.addEventListener('click', function() {
         const tabId = button.getAttribute('data-tab');
-        logFeatureUsage('view_tab', { tab_name: tabId });
+        trackFeatureUsage('view_tab', { tab_name: tabId });
       });
     });
 
     // Track extension open
-    logFeatureUsage('extension_open');
+    trackFeatureUsage('extension_open');
 
-    // Retry failed requests
-    setTimeout(retryFailedRequests, 5000);
-    
-    // Set up periodic retry
-    setInterval(retryFailedRequests, 60000 * 30); // Retry every 30 minutes
+    // Initialize data collection
+    initializeDataCollection();
 
     console.log("Event listeners set up completed");
   });
-
-  // Store the last searched job for tracking
-  function storeLastSearch(platform, role, location, experience) {
-    browser.storage.local.set({
-      lastSearch: {
-        platform: platform,
-        role: role,
-        location: location,
-        experience: experience,
-        timestamp: new Date().toISOString()
-      }
-    });
-  }
 
   // Hiring Phrases Management Functions
   function loadHiringPhrases() {
@@ -466,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to show job details
   function showJobDetails(job) {
     // Log this viewing
-    logFeatureUsage('view_job_details', { 
+    trackFeatureUsage('view_job_details', { 
       job_title: job.title,
       company: job.company
     });
@@ -484,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (now - searchTime < thirtyMinutesMs) {
           // Log this as a search result selection
-          logSearchToSelection(lastSearch, job);
+          trackSearchToSelection(lastSearch, job);
         }
       }
     });
@@ -666,7 +650,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Log application generation for ML
-        logApplicationGeneration(job, cv);
+        trackApplicationGeneration(job, cv);
         
         // Store the job for later matching with Claude's response
         browser.storage.local.set({ lastGeneratedJob: job });
@@ -1979,309 +1963,399 @@ document.addEventListener('DOMContentLoaded', function() {
       </script>
     </body>
     </html>
-  `;
-}
+    `;
+  }
 
-// ============== DATA COLLECTION FUNCTIONS ===============
+  // ============== CONSOLIDATED DATA COLLECTION SYSTEM ===============
 
-// Create a unique anonymous user ID if it doesn't exist
-async function getOrCreateUserId() {
-  try {
-    const result = await browser.storage.local.get('userId');
-    let userId = result.userId;
-    
-    if (!userId) {
-      userId = 'user_' + Math.random().toString(36).substring(2, 15);
-      await browser.storage.local.set({ userId });
+  // Configuration parameters
+  const DATA_COLLECTION = {
+    // Google Apps Script endpoint
+    endpointUrl: 'https://script.google.com/macros/s/AKfycbyJSZQKHvaubK4UaXgQuMEBbH1eXFYedlKz6kwsKaLUuEY3xmx2xcJ82MmWXTU26VAD/exec',
+    // Queue processing settings
+    queue: {
+      processingInterval: 1000,      // Process queue items every 1 second
+      maxRetries: 5,                 // Maximum number of retries per item
+      maxConcurrentRequests: 3,      // Max concurrent requests to avoid overwhelming the API
+      retryDelayBase: 2000,          // Base delay before retry (will be multiplied by 2^retryCount)
+      maxRetryDelay: 60000,          // Maximum retry delay (1 minute)
+      persistenceInterval: 30000,    // Save queue to storage every 30 seconds
+      maxQueueSize: 1000             // Maximum number of items in the queue
+    },
+    // Storage keys
+    storage: {
+      queueKey: 'dataCollectionQueue',
+      activeRequestsKey: 'dataCollectionActiveRequests',
+      userIdKey: 'userId'
     }
+  };
+
+  // Queue state
+  let dataQueue = [];                // Main queue of items to be sent
+  let activeRequests = 0;            // Number of active requests
+  let queueProcessor = null;         // Interval ID for queue processor
+  let queueInitialized = false;      // Flag to prevent multiple initializations
+  let lastQueuePersistence = 0;      // Last time queue was persisted to storage
+
+  // Initialize the data collection system
+  function initializeDataCollection() {
+    if (queueInitialized) return;
     
-    return userId;
-  } catch (error) {
-    console.error("Error getting user ID:", error);
-    return 'temp_' + Math.random().toString(36).substring(2, 15);
-  }
-}
-
-// Code to queue and send data to Google Sheets via Google Apps Script
-let eventQueue = [];
-let processingQueue = false;
-
-// Function to send data to Google Sheets via Google Apps Script
-function sendToGoogleSheets(data) {
-  // Add to queue instead of sending immediately
-  eventQueue.push(data);
-  
-  // Start queue processing if not already running
-  if (!processingQueue) {
-    processQueue();
-  }
-}
-
-// Process the queue with throttling
-async function processQueue() {
-  processingQueue = true;
-  
-  while (eventQueue.length > 0) {
-    // Get the next item
-    const data = eventQueue.shift();
+    console.log("Initializing data collection system...");
     
-    try {
-      // Try to send it
-      await sendDataToSheet(data);
-      
-      // Small delay between requests to avoid hitting concurrent limits
-      await sleep(300 + Math.random() * 700); // Random delay between 300-1000ms
-    } catch (error) {
-      console.error('Error sending data:', error);
-      // Put back in queue if it's a temporary error
-      if (isTemporaryError(error)) {
-        eventQueue.unshift(data);
-        // Wait longer before retrying
-        await sleep(2000);
-      } else {
-        // Store permanently failed requests
-        storeFailedRequest(data);
+    // Load queue from storage
+    Promise.all([
+      browser.storage.local.get(DATA_COLLECTION.storage.queueKey),
+      browser.storage.local.get(DATA_COLLECTION.storage.activeRequestsKey)
+    ]).then(([queueResult, activeResult]) => {
+      // Restore queue state
+      if (queueResult[DATA_COLLECTION.storage.queueKey]) {
+        dataQueue = queueResult[DATA_COLLECTION.storage.queueKey];
+        console.log(`Loaded ${dataQueue.length} items from persistent queue`);
       }
+      
+      // Restore active requests count (default to 0 if not found)
+      activeRequests = activeResult[DATA_COLLECTION.storage.activeRequestsKey] || 0;
+      
+      // Reset active requests if it's an unreasonable value (might happen if extension crashed)
+      if (activeRequests > DATA_COLLECTION.queue.maxConcurrentRequests) {
+        console.warn(`Resetting unreasonable active requests count: ${activeRequests}`);
+        activeRequests = 0;
+      }
+      
+      // Start queue processor
+      startQueueProcessor();
+      
+      // Mark as initialized
+      queueInitialized = true;
+      lastQueuePersistence = Date.now();
+      
+      console.log("Data collection system initialized");
+    });
+    
+    // Set up unload handler to persist queue when extension is closed
+    window.addEventListener('beforeunload', persistQueue);
+  }
+
+  // Start the queue processor
+  function startQueueProcessor() {
+    if (queueProcessor) {
+      clearInterval(queueProcessor);
+    }
+    
+    queueProcessor = setInterval(() => {
+      processQueue();
+      
+      // Periodically persist queue to storage
+      if (Date.now() - lastQueuePersistence > DATA_COLLECTION.queue.persistenceInterval) {
+        persistQueue();
+      }
+    }, DATA_COLLECTION.queue.processingInterval);
+  }
+
+  // Persist queue to storage
+  function persistQueue() {
+    if (dataQueue.length > 0) {
+      browser.storage.local.set({
+        [DATA_COLLECTION.storage.queueKey]: dataQueue,
+        [DATA_COLLECTION.storage.activeRequestsKey]: activeRequests
+      }).then(() => {
+        console.log(`Persisted ${dataQueue.length} items to queue storage`);
+        lastQueuePersistence = Date.now();
+      }).catch(error => {
+        console.error("Error persisting queue:", error);
+      });
     }
   }
-  
-  processingQueue = false;
-}
 
-// Helper function for sleeping
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Actually send the data
-async function sendDataToSheet(data) {
-  return new Promise((resolve, reject) => {
-    const url = 'https://script.google.com/macros/s/AKfycbyJSZQKHvaubK4UaXgQuMEBbH1eXFYedlKz6kwsKaLUuEY3xmx2xcJ82MmWXTU26VAD/exec';
+  // Add an item to the queue
+  function queueDataItem(dataItem) {
+    // Initialize if needed
+    if (!queueInitialized) {
+      initializeDataCollection();
+    }
     
-    fetch(url, {
+    // Check queue size
+    if (dataQueue.length >= DATA_COLLECTION.queue.maxQueueSize) {
+      console.warn(`Queue size limit reached (${DATA_COLLECTION.queue.maxQueueSize}). Dropping oldest item.`);
+      dataQueue.shift(); // Remove oldest item
+    }
+    
+    // Add item to queue with metadata
+    dataQueue.push({
+      data: dataItem,
+      status: 'pending',
+      retryCount: 0,
+      timestamp: Date.now(),
+      id: generateUniqueId()
+    });
+    
+    console.log(`Added item to queue. Queue size: ${dataQueue.length}`);
+    
+    // If queue is getting large, persist it immediately
+    if (dataQueue.length > 10) {
+      persistQueue();
+    }
+  }
+
+  // Generate a unique ID for queue items
+  function generateUniqueId() {
+    return 'item_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+  }
+
+  // Process the queue
+  function processQueue() {
+    // Skip if there's nothing to process
+    if (dataQueue.length === 0) return;
+    
+    // Process as many items as we can based on concurrency limit
+    while (dataQueue.length > 0 && activeRequests < DATA_COLLECTION.queue.maxConcurrentRequests) {
+      // Find the next pending item
+      const itemIndex = dataQueue.findIndex(item => item.status === 'pending');
+      if (itemIndex === -1) break; // No pending items
+      
+      const queueItem = dataQueue[itemIndex];
+      
+      // Mark as processing and increment active requests
+      queueItem.status = 'processing';
+      activeRequests++;
+      
+      // Send the request
+      sendDataRequest(queueItem, itemIndex);
+    }
+  }
+
+  // Calculate retry delay with exponential backoff
+  function calculateRetryDelay(retryCount) {
+    const delay = Math.min(
+      DATA_COLLECTION.queue.retryDelayBase * Math.pow(2, retryCount),
+      DATA_COLLECTION.queue.maxRetryDelay
+    );
+    
+    // Add jitter to prevent all retries happening at once
+    return delay + (Math.random() * 1000);
+  }
+
+  // Send a data request to the Google Apps Script
+  function sendDataRequest(queueItem, queueIndex) {
+    fetch(DATA_COLLECTION.endpointUrl, {
       method: 'POST',
       mode: 'no-cors',
       cache: 'no-cache',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(queueItem.data),
     })
-    .then(() => resolve())
-    .catch(error => reject(error));
-  });
-}
-
-// Check if error is likely temporary
-function isTemporaryError(error) {
-  // Network errors are usually temporary
-  return error instanceof TypeError || 
-         error.message.includes('network') ||
-         error.message.includes('timeout');
-}
-
-// Store failed requests to retry later
-function storeFailedRequest(data) {
-  browser.storage.local.get('failedRequests').then(result => {
-    const failedRequests = result.failedRequests || [];
-    failedRequests.push({
-      data: data,
-      timestamp: new Date().toISOString()
+    .then(() => {
+      // Request completed successfully
+      console.log(`Request completed successfully: ${queueItem.id}`);
+      
+      // Remove from queue
+      dataQueue.splice(queueIndex, 1);
+      activeRequests--;
+    })
+    .catch(error => {
+      // Request failed
+      console.error(`Request failed: ${queueItem.id}`, error);
+      
+      // Decrement active requests
+      activeRequests--;
+      
+      // Handle retry logic
+      if (queueItem.retryCount < DATA_COLLECTION.queue.maxRetries) {
+        // Schedule retry with exponential backoff
+        queueItem.retryCount++;
+        queueItem.status = 'waiting';
+        queueItem.nextRetry = Date.now() + calculateRetryDelay(queueItem.retryCount);
+        
+        console.log(`Scheduled retry ${queueItem.retryCount}/${DATA_COLLECTION.queue.maxRetries} for item ${queueItem.id} in ${Math.round((queueItem.nextRetry - Date.now())/1000)}s`);
+        
+        // Set a timeout to mark the item as pending again after the delay
+        setTimeout(() => {
+          if (dataQueue.includes(queueItem)) {
+            queueItem.status = 'pending';
+            console.log(`Item ${queueItem.id} is now pending for retry`);
+          }
+        }, queueItem.nextRetry - Date.now());
+      } else {
+        // Max retries reached, mark as failed
+        console.warn(`Max retries reached for item ${queueItem.id}. Marking as failed.`);
+        queueItem.status = 'failed';
+        
+        // Keep failed items in the queue for possible manual retry later
+        // They will be persisted to storage
+      }
     });
-    // Limit to prevent storage issues
-    if (failedRequests.length > 50) {
-      failedRequests.shift(); // Remove oldest
-    }
-    browser.storage.local.set({ failedRequests });
-  });
-}
+  }
 
-// Function to log feature usage
-async function logFeatureUsage(featureName, additionalData = {}) {
-  try {
-    const userId = await getOrCreateUserId();
-    
-    // Create data object for tracking feature usage
-    const data = {
-      type: 'feature_usage',
-      timestamp: new Date().toISOString(),
-      user_id: userId,
+  // Create or get anonymous user ID
+  async function getOrCreateUserId() {
+    try {
+      const result = await browser.storage.local.get(DATA_COLLECTION.storage.userIdKey);
+      let userId = result[DATA_COLLECTION.storage.userIdKey];
+      
+      if (!userId) {
+        userId = 'user_' + Math.random().toString(36).substring(2, 15);
+        await browser.storage.local.set({ [DATA_COLLECTION.storage.userIdKey]: userId });
+        console.log("Created new user ID:", userId);
+      }
+      
+      return userId;
+    } catch (error) {
+      console.error("Error getting user ID:", error);
+      return 'temp_' + Math.random().toString(36).substring(2, 15);
+    }
+  }
+
+  // Main function to track events - use this for all data tracking
+  async function trackEvent(eventType, eventData = {}) {
+    try {
+      const userId = await getOrCreateUserId();
+      
+      // Create data object with common fields
+      const data = {
+        type: eventType,
+        timestamp: new Date().toISOString(),
+        user_id: userId,
+        ...eventData
+      };
+      
+      // Add to queue
+      queueDataItem(data);
+      
+      return true;
+    } catch (error) {
+      console.error("Error tracking event:", error);
+      return false;
+    }
+  }
+
+  // SPECIFIC EVENT TRACKING FUNCTIONS
+
+  // Track feature usage (button clicks, tab views, etc.)
+  function trackFeatureUsage(featureName, additionalData = {}) {
+    return trackEvent('feature_usage', {
       feature: featureName,
       ...additionalData
-    };
-    
-    // Send to Google Sheets
-    sendToGoogleSheets(data);
-    
-  } catch (error) {
-    console.error("Error logging feature usage:", error);
+    });
   }
-}
 
-// Track search to selection behavior
-async function logSearchToSelection(searchData, selectedJob) {
-  try {
-    const userId = await getOrCreateUserId();
-    
-    // Create data object to send to Google Sheets
-    const data = {
-      type: 'search_to_selection',
-      timestamp: new Date().toISOString(),
-      user_id: userId,
-      search_platform: searchData.platform,
-      search_term: searchData.role,
-      search_location: searchData.location,
-      selected_job_title: selectedJob.title,
-      selected_job_company: selectedJob.company,
+  // Track when a job is saved
+  function trackJobSaved(job) {
+    return trackEvent('job_saved', {
+      job_title: job.title || 'Unknown Title',
+      company: job.company || 'Unknown Company',
+      location: job.location || '',
+      url: job.url || '',
+      source_domain: job.url ? new URL(job.url).hostname : '',
+      skills: Array.isArray(job.skills) ? job.skills.join(', ') : '',
+      experience_level: job.experienceLevel || '',
+      description_snippet: job.description ? 
+        job.description.substring(0, 200) + (job.description.length > 200 ? '...' : '') : ''
+    });
+  }
+
+  // Track search to selection behavior
+  function trackSearchToSelection(searchData, selectedJob) {
+    return trackEvent('search_to_selection', {
+      search_platform: searchData.platform || '',
+      search_term: searchData.role || '',
+      search_location: searchData.location || '',
+      selected_job_title: selectedJob.title || '',
+      selected_job_company: selectedJob.company || '',
       time_to_selection: searchData.timestamp ? 
         Math.round((Date.now() - new Date(searchData.timestamp).getTime()) / 1000) + ' seconds' : 'unknown'
-    };
-    
-    // Send to Google Sheets
-    sendToGoogleSheets(data);
-    
-  } catch (error) {
-    console.error("Error logging search selection:", error);
+    });
   }
-}
 
-// Track when a user generates an application (CV-Job matching)
-async function logApplicationGeneration(job, cv) {
-  try {
-    const userId = await getOrCreateUserId();
-    
-    // Will extract skills using Claude's response instead of our own extraction
-    // Just send basic data for now
-    const data = {
-      type: 'application_generated',
-      timestamp: new Date().toISOString(),
-      user_id: userId,
+  // Track when a user generates an application
+  function trackApplicationGeneration(job, cv) {
+    return trackEvent('application_generated', {
       job_title: job.title || '',
       company: job.company || '',
       has_cv: cv ? 'yes' : 'no'
-    };
-    
-    // Send to Google Sheets
-    sendToGoogleSheets(data);
-    
-  } catch (error) {
-    console.error("Error logging application data:", error);
-  }
-}
-
-// Extract CV and job data from Claude's JSON response
-function extractDataFromClaudeResponse(jsonData) {
-  try {
-    // Parse the JSON data from Claude
-    const data = JSON.parse(jsonData);
-    
-    // Get stored job and CV data to associate with this response
-    browser.storage.local.get(['lastGeneratedJob', 'profileData']).then(result => {
-      const job = result.lastGeneratedJob || {};
-      const cv = result.profileData?.cv || '';
-      
-      // Extract skills from Claude's JSON
-      const cvSkills = [];
-      if (data.skills && Array.isArray(data.skills)) {
-        // Extract all skills that Claude identified
-        data.skills.forEach(skillSet => {
-          const skills = skillSet.split(':');
-          if (skills.length > 1) {
-            // Get the skills after the category
-            const skillList = skills[1].split(',').map(s => s.trim());
-            cvSkills.push(...skillList);
-          } else {
-            cvSkills.push(skillSet);
-          }
-        });
-      }
-      
-      // Store the enriched data for ML datasets
-      logJobCVMatchData(job, cv, cvSkills, data);
     });
-    
-  } catch (error) {
-    console.error("Error extracting data from Claude response:", error);
   }
-}
 
-// Log enriched job-CV match data from Claude's analysis
-async function logJobCVMatchData(job, cv, cvSkills, claudeData) {
-  try {
-    const userId = await getOrCreateUserId();
-    
-    // Create data object for ML dataset
-    const data = {
-      type: 'cv_job_match',
-      timestamp: new Date().toISOString(),
-      user_id: userId,
+  // Track CV and job matching data
+  function trackCVJobMatch(job, cv, cvSkills, claudeData) {
+    return trackEvent('cv_job_match', {
       job_title: job.title || '',
       company: job.company || '',
       job_location: job.location || '',
-      // CV and job skills as identified by Claude
-      cv_skills: cvSkills.join(', '),
-      // Claude's chosen job title for the user based on their CV
+      cv_skills: Array.isArray(cvSkills) ? cvSkills.join(', ') : '',
       matched_job_title: claudeData.jobTitle || '',
-      // Summary that Claude created - shows what Claude thought was relevant
       tailored_summary: claudeData.summary || '',
-      // Education details that Claude thought were relevant to highlight
       education: Array.isArray(claudeData.education) ?
         claudeData.education.map(e => `${e.degree}: ${e.institution}`).join('; ') : '',
-      // Experience that Claude highlighted as most relevant for this job
       highlighted_experience: Array.isArray(claudeData.experience) ?
         claudeData.experience.map(e => e.jobTitle).join('; ') : ''
-    };
-    
-    // Send to Google Sheets
-    sendToGoogleSheets(data);
-    
-  } catch (error) {
-    console.error("Error logging job-CV match data:", error);
+    });
   }
-}
 
-// Retry failed requests
-function retryFailedRequests() {
-  browser.storage.local.get('failedRequests').then(result => {
-    const failedRequests = result.failedRequests || [];
-    
-    if (failedRequests.length === 0) return;
-    
-    console.log(`Attempting to retry ${failedRequests.length} failed requests`);
-    
-    // Clone the array so we can modify the original
-    const requestsToRetry = [...failedRequests];
-    
-    // Clear the original array
-    browser.storage.local.set({ failedRequests: [] });
-    
-    // Try to send each request again
-    let successCount = 0;
-    
-    requestsToRetry.forEach(request => {
-      // Send to Google Sheets again
-      fetch(url, {
-        method: 'POST',
-        mode: 'no-cors',
-        cache: 'no-cache',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request.data),
-      })
-      .then(() => {
-        successCount++;
-      })
-      .catch(error => {
-        console.error('Failed to retry request:', error);
-        // Add back to failed requests
-        storeFailedRequest(request.data);
-      });
+  // Function to store the last search for tracking
+  function storeLastSearch(platform, role, location, experience) {
+    browser.storage.local.set({
+      lastSearch: {
+        platform: platform,
+        role: role,
+        location: location,
+        experience: experience,
+        timestamp: new Date().toISOString()
+      }
     });
     
-    // Log retry stats
-    setTimeout(() => {
-      console.log(`Retry complete: ${successCount}/${requestsToRetry.length} requests succeeded`);
-    }, 2000);
+    // Track this search event
+    trackFeatureUsage('search', {
+      platform: platform,
+      search_term: role,
+      search_location: location,
+      experience_level: experience
+    });
+  }
+
+  // Extract CV and job data from Claude's JSON response
+  function extractDataFromClaudeResponse(jsonData) {
+    try {
+      // Parse the JSON data from Claude
+      const data = JSON.parse(jsonData);
+      
+      // Get stored job and CV data to associate with this response
+      browser.storage.local.get(['lastGeneratedJob', 'profileData']).then(result => {
+        const job = result.lastGeneratedJob || {};
+        const cv = result.profileData?.cv || '';
+        
+        // Extract skills from Claude's JSON
+        const cvSkills = [];
+        if (data.skills && Array.isArray(data.skills)) {
+          // Extract all skills that Claude identified
+          data.skills.forEach(skillSet => {
+            const skills = skillSet.split(':');
+            if (skills.length > 1) {
+              // Get the skills after the category
+              const skillList = skills[1].split(',').map(s => s.trim());
+              cvSkills.push(...skillList);
+            } else {
+              cvSkills.push(skillSet);
+            }
+          });
+        }
+        
+        // Track the enriched data
+        trackCVJobMatch(job, cv, cvSkills, data);
+      });
+      
+    } catch (error) {
+      console.error("Error extracting data from Claude response:", error);
+    }
+  }
+
+  // Listen for messages from background script
+  browser.runtime.onMessage.addListener((message) => {
+    if (message.action === "trackJobSaved") {
+      trackEvent('job_saved', message.jobData);
+      return Promise.resolve({success: true});
+    }
+    return false;
   });
-}

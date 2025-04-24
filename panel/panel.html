@@ -91,6 +91,66 @@
             </div>
           </div>
         </div>
+
+        <div class="form-group job-boards-section">
+          <label for="job-boards">Job Boards to Search:</label>
+          <div class="job-boards-toggle" id="show-job-boards">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Select specific job boards</span>
+          </div>
+          
+          <div class="job-boards-options hidden" id="job-boards-options">
+            <p class="options-tip">Select specific job boards to search or leave all unchecked to search all boards.</p>
+            <div class="site-option">
+              <input type="checkbox" id="board-lever" name="job-board" value="jobs.lever.co">
+              <label for="board-lever">Lever</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="board-greenhouse" name="job-board" value="boards.greenhouse.io">
+              <label for="board-greenhouse">Greenhouse</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="board-workable" name="job-board" value="apply.workable.com">
+              <label for="board-workable">Workable</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="board-ashby" name="job-board" value="ashbyhq.com">
+              <label for="board-ashby">Ashby</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="board-smart" name="job-board" value="jobs.smartrecruiters.com">
+              <label for="board-smart">SmartRecruiters</label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group doc-sites-section">
+          <label for="doc-sites">Document Sites to Search:</label>
+          <div class="doc-sites-toggle" id="show-doc-sites">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Select specific document sites</span>
+          </div>
+          
+          <div class="doc-sites-options hidden" id="doc-sites-options">
+            <p class="options-tip">Select specific document sites to search or leave all unchecked to search all sites.</p>
+            <div class="site-option">
+              <input type="checkbox" id="site-google" name="doc-site" value="docs.google.com">
+              <label for="site-google">Google Docs</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="site-notion" name="doc-site" value="notion.site">
+              <label for="site-notion">Notion</label>
+            </div>
+            <div class="site-option">
+              <input type="checkbox" id="site-coda" name="doc-site" value="coda.io">
+              <label for="site-coda">Coda</label>
+            </div>
+          </div>
+        </div>
         
         <div class="search-buttons">
           <button type="button" id="search-linkedin">Find on LinkedIn</button>

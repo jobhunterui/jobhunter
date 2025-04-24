@@ -71,6 +71,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
+    document.getElementById('show-job-boards').addEventListener('click', toggleJobBoardsSelection);
+    document.getElementById('show-doc-sites').addEventListener('click', toggleDocSitesSelection);
+
     // Load hiring phrases
     loadHiringPhrases();
     
@@ -208,6 +211,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     return selectedPhrases;
   }
+
+  // Functions to show/hide the site selection panels
+  function toggleJobBoardsSelection() {
+    const optionsEl = document.getElementById('job-boards-options');
+    const toggleEl = document.getElementById('show-job-boards');
+    
+    if (optionsEl.classList.contains('hidden')) {
+      optionsEl.classList.remove('hidden');
+      toggleEl.classList.add('active');
+    } else {
+      optionsEl.classList.add('hidden');
+      toggleEl.classList.remove('active');
+    }
+  }
+
+  function toggleDocSitesSelection() {
+    const optionsEl = document.getElementById('doc-sites-options');
+    const toggleEl = document.getElementById('show-doc-sites');
+    
+    if (optionsEl.classList.contains('hidden')) {
+      optionsEl.classList.remove('hidden');
+      toggleEl.classList.add('active');
+    } else {
+      optionsEl.classList.add('hidden');
+      toggleEl.classList.remove('active');
+    }
+  }
   
   // Find Jobs Tab Functions
   function searchOnLinkedIn() {
@@ -265,18 +295,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const role = document.getElementById('role').value.trim();
     const location = document.getElementById('location').value.trim();
     const experience = document.getElementById('experience').value;
-
-    // Store search context for tracking
-    storeLastSearch('jobBoard', role, location, experience);
+  
+    // Get selected job board sites (or use all if none selected)
+    const selectedJobSites = Array.from(document.querySelectorAll('input[name="job-board"]:checked'))
+      .map(input => input.value);
     
-    // List of specific ATS sites as requested
-    const atsSites = [
+    // Use all sites if none are selected
+    const atsSites = selectedJobSites.length > 0 ? selectedJobSites : [
       'jobs.lever.co',
       'boards.greenhouse.io',
       'apply.workable.com',
       'ashbyhq.com',
       'jobs.smartrecruiters.com'
     ];
+  
+    // Store search context for tracking
+    storeLastSearch('jobBoard', role, location, experience);
     
     // Construct site search query exactly as specified
     const siteQuery = atsSites.map(site => `site:${site}`).join(' OR ');
@@ -294,7 +328,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const location = document.getElementById('location').value.trim();
     const selectedPhrases = getSelectedHiringPhrases();
     const experience = document.getElementById('experience').value;
-
+    
+    // Get selected document sites (or use all if none selected)
+    const selectedDocSites = Array.from(document.querySelectorAll('input[name="doc-site"]:checked'))
+      .map(input => input.value);
+    
+    // Use all sites if none are selected
+    const documentSites = selectedDocSites.length > 0 ? selectedDocSites : [
+      'docs.google.com',
+      'notion.site',
+      'coda.io'
+    ];
+  
     // Store search context for tracking
     storeLastSearch('docsAndPages', role, location, experience);
     
@@ -304,13 +349,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (!selectedPhrases) return;
-    
-    // Simplified document sites list
-    const documentSites = [
-      'docs.google.com',
-      'notion.so',
-      'coda.io'
-    ];
     
     // Construct the site search query
     const siteQuery = documentSites.map(site => `site:${site}`).join(' OR ');
@@ -2532,24 +2570,38 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Function to store the last search for tracking
-  function storeLastSearch(platform, role, location, experience) {
+  function storeLastSearch(platform, role, location, experience, selectedSites = []) {
+    const searchData = {
+      platform: platform,
+      role: role,
+      location: location,
+      experience: experience,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add selected sites if any were provided
+    if (selectedSites && selectedSites.length > 0) {
+      searchData.selectedSites = selectedSites;
+    }
+    
     browser.storage.local.set({
-      lastSearch: {
-        platform: platform,
-        role: role,
-        location: location,
-        experience: experience,
-        timestamp: new Date().toISOString()
-      }
+      lastSearch: searchData
     });
     
-    // Track this search event
-    trackFeatureUsage('search', {
+    // Track this search event with enhanced data
+    let trackingData = {
       platform: platform,
       search_term: role,
       search_location: location,
       experience_level: experience
-    });
+    };
+    
+    // Add selected sites to tracking data if available
+    if (selectedSites && selectedSites.length > 0) {
+      trackingData.selected_sites = selectedSites.join(',');
+    }
+    
+    trackFeatureUsage('search', trackingData);
   }
 
   // Extract CV and job data from Claude's JSON response

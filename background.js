@@ -172,3 +172,15 @@ function saveJobData(jobData, url) {
     }
   });
 }
+
+function trackSiteSelectionSearch(type, searchData, selectedSites) {
+  browser.runtime.sendMessage({
+    action: "trackFeatureUsage",
+    feature: `search_${type}_selected`,
+    searchTerm: searchData.role || '',
+    searchLocation: searchData.location || '',
+    selectedSites: selectedSites.join(',')
+  }).catch(error => {
+    console.error("Error sending tracking message:", error);
+  });
+}

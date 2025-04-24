@@ -530,3 +530,68 @@ button:hover {
 .interview-prep-button:hover {
   background-color: #8e44ad;
 }
+
+/* Common styles for all selection sections */
+.hiring-phrases-toggle,
+.job-boards-toggle,
+.doc-sites-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: #3498db;
+  margin-bottom: 8px;
+}
+
+.hiring-phrases-toggle svg,
+.job-boards-toggle svg,
+.doc-sites-toggle svg {
+  margin-right: 5px;
+  transition: transform 0.3s ease;
+}
+
+.hiring-phrases-toggle.active svg,
+.job-boards-toggle.active svg,
+.doc-sites-toggle.active svg {
+  transform: rotate(180deg);
+}
+
+.hiring-phrases-options,
+.job-boards-options,
+.doc-sites-options {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.phrase-option,
+.site-option {
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.phrase-option label,
+.site-option label {
+  display: inline;
+  margin-left: 5px;
+  font-weight: normal;
+  font-size: 13px;
+}
+
+.options-tip {
+  font-size: 12px;
+  color: #666;
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+/* Add spacing between selection groups */
+.hiring-phrases-section,
+.job-boards-section,
+.doc-sites-section {
+  margin-bottom: 15px;
+}

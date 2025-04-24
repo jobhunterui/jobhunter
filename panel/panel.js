@@ -309,8 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
       'jobs.smartrecruiters.com'
     ];
   
-    // Store search context for tracking
-    storeLastSearch('jobBoard', role, location, experience);
+    // Store search context for tracking with selected sites
+    storeLastSearch('jobBoard', role, location, experience, selectedJobSites.length > 0 ? selectedJobSites : []);
     
     // Construct site search query exactly as specified
     const siteQuery = atsSites.map(site => `site:${site}`).join(' OR ');
@@ -340,8 +340,8 @@ document.addEventListener('DOMContentLoaded', function() {
       'coda.io'
     ];
   
-    // Store search context for tracking
-    storeLastSearch('docsAndPages', role, location, experience);
+    // Store search context for tracking with selected sites
+    storeLastSearch('docsAndPages', role, location, experience, selectedDocSites.length > 0 ? selectedDocSites : []);
     
     if (!role) {
       alert('Please enter a job role to search for.');

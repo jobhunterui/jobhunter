@@ -1,16 +1,97 @@
-// Create context menu when extension is installed/updated
-browser.runtime.onInstalled.addListener(() => {
+// Clear existing context menus and create new ones when extension loads
+browser.contextMenus.removeAll().then(() => {
   browser.contextMenus.create({
     id: "save-job",
     title: "Save Job to Job Hunter",
     contexts: ["page"]
+  }, () => {
+    if (browser.runtime.lastError) {
+      console.error("Error creating context menu:", browser.runtime.lastError);
+    } else {
+      console.log("Context menu created successfully");
+    }
   });
+}).catch(error => {
+  console.error("Error removing existing context menus:", error);
+});
+
+// Check if we should show the welcome page on startup
+browser.runtime.onStartup.addListener(() => {
+  checkAndShowWelcome();
+});
+
+// Check if we should show the welcome page on install/update
+browser.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    // First install - always show welcome page
+    showWelcomePage();
+  } else if (details.reason === 'update') {
+    // Check if we should show welcome on update
+    // Only show on major version changes
+    const previousVersion = details.previousVersion || '';
+    const currentVersion = browser.runtime.getManifest().version;
+    
+    const previousMajor = parseInt(previousVersion.split('.')[0]) || 0;
+    const currentMajor = parseInt(currentVersion.split('.')[0]) || 0;
+    
+    if (currentMajor > previousMajor) {
+      showWelcomePage();
+    } else {
+      checkAndShowWelcome();
+    }
+  }
 });
 
 // Handle browser action clicks (toolbar icon)
 browser.browserAction.onClicked.addListener(() => {
   // Open the sidebar panel
   browser.sidebarAction.open();
+});
+
+// Function to check welcome preferences and show welcome if needed
+function checkAndShowWelcome() {
+  browser.storage.local.get('welcomePreferences').then(result => {
+    const prefs = result.welcomePreferences || {};
+    
+    // If dontShowAgain is not set or is false, show welcome
+    if (!prefs.dontShowAgain) {
+      showWelcomePage();
+    }
+  }).catch(error => {
+    console.error("Error checking welcome preferences:", error);
+  });
+}
+
+// Function to open the welcome page
+function showWelcomePage() {
+  browser.tabs.create({ url: browser.runtime.getURL("welcome.html") });
+}
+
+// Listen for messages from welcome page
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'closeWelcome') {
+    // Save preferences
+    browser.storage.local.set({ 
+      welcomePreferences: { 
+        dontShowAgain: message.dontShowAgain,
+        lastShown: new Date().toISOString()
+      }
+    }).then(() => {
+      sendResponse({ success: true });
+    }).catch(error => {
+      console.error("Error saving welcome preferences:", error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    return true; // Keep the messaging channel open for the async response
+  }
+  
+  if (message.action === "jobSaved") {
+    // Handle job saved confirmation
+    return Promise.resolve({ success: true });
+  }
+  
+  return false;
 });
 
 // Handle context menu clicks
@@ -91,12 +172,3 @@ function saveJobData(jobData, url) {
     }
   });
 }
-
-// Listen for messages from content script
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "jobSaved") {
-    // Handle job saved confirmation
-    return Promise.resolve({ success: true });
-  }
-  return false;
-});

@@ -46,5 +46,9 @@
       "matches": ["<all_urls>"],
       "js": ["content-scripts/job-scraper.js"]
     }
+  ],
+  
+  "web_accessible_resources": [
+    "welcome.html"
   ]
 }

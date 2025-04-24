@@ -465,3 +465,68 @@ button:hover {
   font-size: 13px;
   background-color: #2ecc71;
 }
+
+.job-status-container {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #666;
+  margin-right: 5px;
+}
+
+.job-status-select {
+  font-size: 12px;
+  padding: 2px 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background-color: #f9f9f9;
+}
+
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 5px;
+}
+
+.status-reviewing {
+  border-left: 3px solid #f39c12;
+}
+
+.status-applied {
+  border-left: 3px solid #3498db;
+}
+
+.status-interviewing {
+  border-left: 3px solid #9b59b6;
+}
+
+.status-offer {
+  border-left: 3px solid #2ecc71;
+}
+
+.status-rejected {
+  border-left: 3px solid #e74c3c;
+}
+
+.status-accepted {
+  border-left: 3px solid #27ae60;
+}
+
+.status-declined {
+  border-left: 3px solid #7f8c8d;
+}
+
+.interview-prep-button {
+  background-color: #9b59b6;
+}
+
+.interview-prep-button:hover {
+  background-color: #8e44ad;
+}

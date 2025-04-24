@@ -147,6 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize data collection
     initializeDataCollection();
 
+    // Set up interview prep button
+    setupInterviewPrepButton();
+
     console.log("Event listeners set up completed");
   });
 
@@ -414,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           `;
           
-          // Add selection functionality
+          // Add selection functionality and event listeners
           jobItem.addEventListener('click', (e) => {
             // Don't select if clicking on the view details button or the URL link
             if (e.target.classList.contains('view-details-btn') || 
@@ -437,6 +440,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.stopPropagation(); // Prevent selection of the job item
             showJobDetails(job);
           });
+
+          addStatusTracking(jobItem, job, index);
           
           savedJobsList.appendChild(jobItem);
         });
@@ -445,6 +450,232 @@ document.addEventListener('DOMContentLoaded', function() {
         jobActions.classList.add('hidden');
       }
     });
+  }
+
+  function addStatusTracking(jobItem, job, index) {
+    const jobActions = jobItem.querySelector('.job-item-actions');
+    
+    // Create status selector
+    const statusContainer = document.createElement('div');
+    statusContainer.className = 'job-status-container';
+    
+    const statusLabel = document.createElement('span');
+    statusLabel.className = 'status-label';
+    statusLabel.textContent = 'Status: ';
+    
+    const statusSelect = document.createElement('select');
+    statusSelect.className = 'job-status-select';
+    statusSelect.setAttribute('data-index', index);
+    
+    // Define status options
+    const statuses = [
+      { value: 'reviewing', text: 'Reviewing', color: '#f39c12' },
+      { value: 'applied', text: 'Applied', color: '#3498db' },
+      { value: 'interviewing', text: 'Interviewing', color: '#9b59b6' },
+      { value: 'offer', text: 'Offer Received', color: '#2ecc71' },
+      { value: 'rejected', text: 'Rejected', color: '#e74c3c' },
+      { value: 'accepted', text: 'Accepted', color: '#27ae60' },
+      { value: 'declined', text: 'Declined', color: '#7f8c8d' }
+    ];
+    
+    // Add options to select
+    statuses.forEach(status => {
+      const option = document.createElement('option');
+      option.value = status.value;
+      option.textContent = status.text;
+      
+      // Set selected if job has this status
+      if (job.status === status.value) {
+        option.selected = true;
+      }
+      
+      statusSelect.appendChild(option);
+    });
+    
+    // Default to 'reviewing' if no status is set
+    if (!job.status) {
+      statusSelect.value = 'reviewing';
+    }
+    
+    // Add event listener to status select
+    statusSelect.addEventListener('change', (e) => {
+      e.stopPropagation(); // Prevent parent click
+      updateJobStatus(index, e.target.value);
+    });
+    
+    // Add elements to container
+    statusContainer.appendChild(statusLabel);
+    statusContainer.appendChild(statusSelect);
+    
+    // Add status color indicator
+    const statusIndicator = document.createElement('span');
+    statusIndicator.className = 'status-indicator';
+    const currentStatus = statuses.find(s => s.value === (job.status || 'reviewing'));
+    statusIndicator.style.backgroundColor = currentStatus.color;
+    statusContainer.appendChild(statusIndicator);
+    
+    // Add status container before job-item-actions
+    jobItem.insertBefore(statusContainer, jobActions);
+    
+    // Update job item appearance based on status
+    updateJobItemAppearance(jobItem, job.status || 'reviewing');
+  }
+  
+  // Function to update job status
+  function updateJobStatus(jobIndex, newStatus) {
+    browser.storage.local.get('savedJobs').then(result => {
+      const savedJobs = result.savedJobs || [];
+      
+      if (savedJobs[jobIndex]) {
+        // Update job status
+        savedJobs[jobIndex].status = newStatus;
+        
+        // Save updated jobs
+        browser.storage.local.set({ savedJobs }).then(() => {
+          // Update visual appearance
+          const jobItem = document.querySelector(`.job-item[data-index="${jobIndex}"]`);
+          if (jobItem) {
+            updateJobItemAppearance(jobItem, newStatus);
+            
+            // Update status indicator color
+            const statusIndicator = jobItem.querySelector('.status-indicator');
+            const statuses = [
+              { value: 'reviewing', color: '#f39c12' },
+              { value: 'applied', color: '#3498db' },
+              { value: 'interviewing', color: '#9b59b6' },
+              { value: 'offer', color: '#2ecc71' },
+              { value: 'rejected', color: '#e74c3c' },
+              { value: 'accepted', color: '#27ae60' },
+              { value: 'declined', color: '#7f8c8d' }
+            ];
+            
+            const currentStatus = statuses.find(s => s.value === newStatus);
+            if (statusIndicator && currentStatus) {
+              statusIndicator.style.backgroundColor = currentStatus.color;
+            }
+          }
+          
+          // Track this status change
+          trackFeatureUsage('update_job_status', {
+            job_title: savedJobs[jobIndex].title || 'Unknown',
+            new_status: newStatus
+          });
+        });
+      }
+    });
+  }
+  
+  // Function to update job item appearance based on status
+  function updateJobItemAppearance(jobItem, status) {
+    // Remove any existing status classes
+    const statusClasses = ['status-reviewing', 'status-applied', 'status-interviewing', 
+                           'status-offer', 'status-rejected', 'status-accepted', 'status-declined'];
+    
+    jobItem.classList.remove(...statusClasses);
+    
+    // Add appropriate status class
+    jobItem.classList.add(`status-${status}`);
+  }
+  
+  // 2. Implement Interview Prep feature
+  
+  // Add this to the generateApplication function area
+  function setupInterviewPrepButton() {
+    const interviewPrepButton = document.createElement('button');
+    interviewPrepButton.id = 'interview-prep';
+    interviewPrepButton.textContent = 'Interview Prep';
+    interviewPrepButton.className = 'interview-prep-button';
+    
+    // Add button to job actions area
+    const jobActions = document.getElementById('job-actions');
+    jobActions.appendChild(interviewPrepButton);
+    
+    // Add event listener
+    interviewPrepButton.addEventListener('click', generateInterviewPrep);
+  }
+  
+  // Function to generate interview prep materials
+  function generateInterviewPrep() {
+    const selectedJob = document.querySelector('.job-item.selected');
+    
+    if (selectedJob) {
+      const jobIndex = parseInt(selectedJob.getAttribute('data-index'));
+      
+      // Get saved jobs and profile data
+      Promise.all([
+        browser.storage.local.get('savedJobs'),
+        browser.storage.local.get('profileData')
+      ]).then(([jobsResult, profileResult]) => {
+        const savedJobs = jobsResult.savedJobs || [];
+        const profileData = profileResult.profileData || {};
+        
+        const job = savedJobs[jobIndex];
+        const cv = profileData.cv || '';
+        
+        if (!cv.trim()) {
+          alert('Please add your CV in the Profile tab first.');
+          // Switch to profile tab
+          document.querySelector('[data-tab="profile"]').click();
+          return;
+        }
+        
+        // Track interview prep generation
+        trackFeatureUsage('generate_interview_prep', {
+          job_title: job.title || '',
+          company: job.company || ''
+        });
+        
+        // Create prompt for Claude
+        const prompt = createInterviewPrepPrompt(job, cv);
+        
+        // Copy prompt to clipboard
+        navigator.clipboard.writeText(prompt).then(() => {
+          // Open Claude in a new tab
+          browser.tabs.create({ url: 'https://claude.ai' });
+          
+          alert('Interview prep prompt copied to clipboard! Paste it into Claude to start your interview preparation session.');
+        });
+      });
+    }
+  }
+  
+  // Function to create interview prep prompt
+  function createInterviewPrepPrompt(job, cv) {
+    return `I want you to help me prepare for a job interview. Here are the details:
+  
+  JOB DETAILS:
+  Title: ${job.title}
+  Company: ${job.company}
+  Location: ${job.location || 'Not specified'}
+  Description: ${job.description || 'Not provided'}
+  
+  MY CURRENT CV:
+  ${cv}
+  
+  Please act as an interactive interview coach and simulate a realistic job interview for this position. 
+  
+  First, analyze my CV and the job description to identify:
+  1. Key skills and experience they're looking for
+  2. Potential skill gaps I might have
+  3. Likely interview questions for this role
+  4. Parts of my background I should emphasize
+  
+  Then, start the interactive interview session where you:
+  1. Ask me a relevant interview question
+  2. Wait for my response
+  3. Provide constructive feedback on my answer
+  4. Move to the next question
+  
+  Include a mix of:
+  - Technical questions related to the job
+  - Behavioral questions
+  - Questions about my experience and background
+  - Questions about the company and industry
+  - Challenging questions that might trip me up
+  
+  If I'm using a mobile device, remind me I can record my voice response instead of typing.
+  
+  At the end, provide overall feedback and tips to improve. Let's start the interview preparation now.`;
   }
 
   // Function to show job details

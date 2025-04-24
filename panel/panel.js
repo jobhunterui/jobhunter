@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
     MY CURRENT CV:
     ${cv}
     
-    First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging.
+    First, please write me a great cover letter for this job that highlights my relevant experience and why I'm a good fit. Make it professional but engaging. Format the cover letter so it's ready to copy and paste directly into Google Docs or another word processor, with proper paragraphing, spacing, and a professional layout. Include my contact information at the top, the date, recipient details (if available from the job), and proper salutation and closing.
     
     Then, please provide my CV information in this exact JSON format that I'll copy back to my extension. It's critical that the JSON is well-formed and follows this exact structure:
     
@@ -1808,10 +1808,9 @@ document.addEventListener('DOMContentLoaded', function() {
   </head>
   <body>
       <div class="print-controls">
-          <button onclick="window.print()">Print CV & Cover Letter</button>
-          <button onclick="printCV()">Print CV Only</button>
-          <button onclick="printCoverLetter()">Print Cover Letter Only</button>
-          <button onclick="window.close()">Close Preview</button>
+          <button onclick="window.print()">Print CV</button>
+          <button onclick="window.close()">Close</button>
+          <p class="print-tip">If our print button doesn't work, press CTRL+P (or CMD+P on Mac) to print.</p>
       </div>
   
       <div class="cv-container">
@@ -2062,6 +2061,13 @@ document.addEventListener('DOMContentLoaded', function() {
           
           ul.skills-list, ul.responsibilities-list, ul.certifications-list {
             padding-left: 20px;
+          }
+
+          .print-tip {
+            margin: 5px 0;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
           }
           
           .print-buttons {

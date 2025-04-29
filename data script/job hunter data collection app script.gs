@@ -1,6 +1,3 @@
-// Google Apps Script to handle data collection in Sheets
-// Go to Extensions > Apps Script in your Google Sheet and paste this code
-
 function doPost(e) {
   try {
     // Parse the incoming data
@@ -24,6 +21,12 @@ function doPost(e) {
         break;
       case 'cv_job_match':
         sheetName = 'CVJobMatches';
+        break;
+      case 'system_alert':
+        sheetName = 'SystemAlerts';
+        break;
+      case 'queue_health':
+        sheetName = 'QueueHealth';
         break;
       default:
         sheetName = 'OtherData';
@@ -279,6 +282,26 @@ function setupSheets() {
           'Tailored Summary',
           'Education',
           'Highlighted Experience'
+        ]);
+      }
+      else if (sheetName === 'SystemAlerts') {
+        sheet.appendRow([
+          'Timestamp', 
+          'User ID', 
+          'Alert Name',
+          'Details'
+        ]);
+      }
+      else if (sheetName === 'QueueHealth') {
+        sheet.appendRow([
+          'Timestamp', 
+          'User ID', 
+          'Queue Size',
+          'Capacity %',
+          'Active Requests',
+          'Oldest Item Age',
+          'Pending Items',
+          'Processing Items'
         ]);
       }
       
